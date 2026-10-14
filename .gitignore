@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment Variables (SECRETS)
+.env
+.env.local
+
+# Build Outputs
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
