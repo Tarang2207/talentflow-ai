@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import CandidatePortal from "./pages/CandidatePortal";
+import AuthPage from "./pages/AuthPage";
 
 function Home() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<AuthPage />} />
             <Route path="/candidate" element={<CandidatePortal />} />
             <Route path="/recruiter" element={<RecruiterDashboard />} />
           </Routes>
