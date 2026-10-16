@@ -11,6 +11,7 @@ import authRoutes from "./routes/authRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/match", matchRoutes);
+app.use("/api/interviews", interviewRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "success", message: "Backend is running!" });
