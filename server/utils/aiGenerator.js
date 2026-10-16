@@ -15,7 +15,6 @@ export const generateInterviewQuestions = async (
 ) => {
   const groq = getGroqClient();
 
-  // Fallback generator if no API key is provided
   if (!groq) {
     console.warn("GROQ_API_KEY not set. Using template question generator.");
     return [
@@ -103,5 +102,58 @@ Return ONLY a JSON object formatted as follows:
         feedback: "",
       },
     ];
+  }
+};
+
+// Evaluate candidate answers using LLM
+export const evaluateCandidateAnswers = async (question, candidateAnswer) => {
+  const groq = getGroqClient();
+
+  // Fallback evaluator if no API key is provided
+  if (!groq || !candidateAnswer || candidateAnswer.trim().length === 0) {
+    return {
+      aiScore: candidateAnswer?.trim().length > 20 ? 75 : 30,
+      feedback:
+        candidateAnswer?.trim().length > 20
+          ? "Answer provides general technical context but could include more specific architectural details."
+          : "Answer is too brief to adequately demonstrate technical depth.",
+    };
+  }
+
+  const prompt = `
+You are an expert technical interviewer evaluating a candidate's answer.
+
+Question: "${question}"
+Candidate Answer: "${candidateAnswer}"
+
+Evaluate the candidate's answer based on technical accuracy, depth, and clarity.
+Assign an integer score from 0 to 100 and write a concise 1-2 sentence feedback evaluation.
+
+Return ONLY a JSON object formatted as follows:
+{
+  "aiScore": 85,
+  "feedback": "Concise evaluation feedback here."
+}
+`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    });
+
+    const parsed = JSON.parse(completion.choices[0]?.message?.content);
+    return {
+      aiScore: parsed.aiScore || 70,
+      feedback: parsed.feedback || "Good technical effort.",
+    };
+  } catch (error) {
+    console.error("Error evaluating answer:", error);
+    return {
+      aiScore: 70,
+      feedback: "Answer shows reasonable technical understanding.",
+    };
   }
 };

@@ -2,7 +2,10 @@
 import InterviewSession from "../models/InterviewSession.js";
 import Job from "../models/Job.js";
 import Resume from "../models/Resume.js";
-import { generateInterviewQuestions } from "../utils/aiGenerator.js";
+import {
+  generateInterviewQuestions,
+  evaluateCandidateAnswers,
+} from "../utils/aiGenerator.js";
 
 // @desc    Start/Generate AI Interview Session
 // @route   POST /api/interviews/generate
@@ -25,7 +28,6 @@ export const generateInterviewSession = async (req, res) => {
         .json({ message: "Job or Resume record not found" });
     }
 
-    // Return existing session if candidate already started one for this job/resume pair
     let existingSession = await InterviewSession.findOne({
       candidate: req.user._id,
       job: jobId,
@@ -39,14 +41,12 @@ export const generateInterviewSession = async (req, res) => {
       });
     }
 
-    // Generate custom questions using LLM
     const generatedQuestions = await generateInterviewQuestions(
       job.title,
       job.description,
       resume.rawText,
     );
 
-    // Save session in MongoDB
     const session = await InterviewSession.create({
       candidate: req.user._id,
       job: jobId,
@@ -79,6 +79,51 @@ export const getInterviewSession = async (req, res) => {
 
     res.status(200).json(session);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Submit candidate answers & run AI grading evaluation
+// @route   POST /api/interviews/submit
+export const submitInterviewAnswers = async (req, res) => {
+  try {
+    const { sessionId, answers } = req.body; // answers = [{ questionId, candidateAnswer }]
+
+    const session = await InterviewSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Interview session not found" });
+    }
+
+    let totalScore = 0;
+
+    // Evaluate each question using AI
+    for (let item of answers) {
+      const questionObj = session.questions.id(item.questionId);
+      if (questionObj) {
+        questionObj.candidateAnswer = item.candidateAnswer;
+
+        const evaluation = await evaluateCandidateAnswers(
+          questionObj.question,
+          item.candidateAnswer,
+        );
+
+        questionObj.aiScore = evaluation.aiScore;
+        questionObj.feedback = evaluation.feedback;
+        totalScore += evaluation.aiScore;
+      }
+    }
+
+    session.overallScore = Math.round(totalScore / session.questions.length);
+    session.status = "Completed";
+
+    await session.save();
+
+    res.status(200).json({
+      message: "Interview submitted and evaluated successfully",
+      session,
+    });
+  } catch (error) {
+    console.error("Interview Submission Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

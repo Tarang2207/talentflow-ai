@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import CandidatePortal from "./pages/CandidatePortal";
 import AuthPage from "./pages/AuthPage";
+import InterviewPage from "./pages/InterviewPage";
 
 function Home() {
   return (
@@ -31,6 +32,10 @@ export default function App() {
             <Route path="/login" element={<AuthPage />} />
             <Route path="/candidate" element={<CandidatePortal />} />
             <Route path="/recruiter" element={<RecruiterDashboard />} />
+            <Route
+              path="/interview/:jobId/:resumeId"
+              element={<InterviewPage />}
+            />
           </Routes>
         </main>
       </div>
