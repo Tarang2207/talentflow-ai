@@ -6,6 +6,7 @@ import {
   generateInterviewQuestions,
   evaluateCandidateAnswers,
 } from "../utils/aiGenerator.js";
+import mongoose from "mongoose";
 
 // @desc    Start/Generate AI Interview Session
 // @route   POST /api/interviews/generate
@@ -19,20 +20,36 @@ export const generateInterviewSession = async (req, res) => {
         .json({ message: "Please provide jobId and resumeId" });
     }
 
-    const job = await Job.findById(jobId);
-    const resume = await Resume.findById(resumeId);
+    let jobTitle = "Full Stack MERN Developer";
+    let jobDescription =
+      "Looking for a developer with Node.js, Express, React, and MongoDB experience.";
+    let resumeText =
+      "Experienced Full Stack MERN developer skilled in JavaScript, Node.js, Express, React, MongoDB, and Tailwind CSS.";
 
-    if (!job || !resume) {
-      return res
-        .status(404)
-        .json({ message: "Job or Resume record not found" });
+    // Safely query Job if valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(jobId)) {
+      const job = await Job.findById(jobId);
+      if (job) {
+        jobTitle = job.title;
+        jobDescription = job.description;
+      }
     }
 
-    let existingSession = await InterviewSession.findOne({
-      candidate: req.user._id,
-      job: jobId,
-      resume: resumeId,
-    });
+    // Safely query Resume if valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(resumeId)) {
+      const resume = await Resume.findById(resumeId);
+      if (resume) {
+        resumeText = resume.rawText;
+      }
+    }
+
+    // Check for an active existing session
+    const query = { candidate: req.user._id };
+    if (mongoose.Types.ObjectId.isValid(jobId)) {
+      query.job = jobId;
+    }
+
+    let existingSession = await InterviewSession.findOne(query);
 
     if (existingSession) {
       return res.status(200).json({
@@ -42,18 +59,22 @@ export const generateInterviewSession = async (req, res) => {
     }
 
     const generatedQuestions = await generateInterviewQuestions(
-      job.title,
-      job.description,
-      resume.rawText,
+      jobTitle,
+      jobDescription,
+      resumeText,
     );
 
-    const session = await InterviewSession.create({
+    const sessionData = {
       candidate: req.user._id,
-      job: jobId,
-      resume: resumeId,
       questions: generatedQuestions,
       status: "In-Progress",
-    });
+    };
+
+    if (mongoose.Types.ObjectId.isValid(jobId)) sessionData.job = jobId;
+    if (mongoose.Types.ObjectId.isValid(resumeId))
+      sessionData.resume = resumeId;
+
+    const session = await InterviewSession.create(sessionData);
 
     res.status(201).json({
       message: "AI screening interview generated successfully",
@@ -87,7 +108,7 @@ export const getInterviewSession = async (req, res) => {
 // @route   POST /api/interviews/submit
 export const submitInterviewAnswers = async (req, res) => {
   try {
-    const { sessionId, answers } = req.body; // answers = [{ questionId, candidateAnswer }]
+    const { sessionId, answers } = req.body;
 
     const session = await InterviewSession.findById(sessionId);
     if (!session) {
@@ -96,7 +117,6 @@ export const submitInterviewAnswers = async (req, res) => {
 
     let totalScore = 0;
 
-    // Evaluate each question using AI
     for (let item of answers) {
       const questionObj = session.questions.id(item.questionId);
       if (questionObj) {
