@@ -2,7 +2,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// Verify JWT Token
 export const protect = async (req, res, next) => {
   let token;
 
@@ -12,21 +11,39 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Attach user to request object (excluding password)
-      req.user = await User.findById(decoded.id).select("-password");
-      next();
+      if (!token || token === "null" || token === "undefined") {
+        return res
+          .status(401)
+          .json({ message: "Not authorized, invalid token format" });
+      }
+
+      // Verify JWT against server secret
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || "your_fallback_secret",
+      );
+
+      // Check both id or userId in token payload
+      const userId = decoded.id || decoded.userId;
+      req.user = await User.findById(userId).select("-password");
+
+      if (!req.user) {
+        return res
+          .status(401)
+          .json({ message: "Not authorized, user profile missing" });
+      }
+
+      return next();
     } catch (error) {
-      return res.status(401).json({ message: "Not authorized, token failed" });
+      console.error("JWT Auth Middleware Error:", error.message);
+      return res
+        .status(401)
+        .json({ message: "Not authorized, token validation failed" });
     }
   }
 
-  if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Not authorized, no token provided" });
-  }
+  return res.status(401).json({ message: "Not authorized, no token provided" });
 };
 
 // Restrict access by Role

@@ -2,22 +2,11 @@
 import mongoose from "mongoose";
 
 const questionSchema = new mongoose.Schema({
-  question: {
-    type: String,
-    required: true,
-  },
-  candidateAnswer: {
-    type: String,
-    default: "",
-  },
-  aiScore: {
-    type: Number,
-    default: 0,
-  },
-  feedback: {
-    type: String,
-    default: "",
-  },
+  question: { type: String, required: true },
+  category: { type: String, default: "General" },
+  candidateAnswer: { type: String, default: "" },
+  aiScore: { type: Number, default: 0 },
+  feedback: { type: String, default: "" },
 });
 
 const interviewSessionSchema = new mongoose.Schema(
@@ -30,12 +19,12 @@ const interviewSessionSchema = new mongoose.Schema(
     job: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
-      required: true,
+      required: false, // Allows demo/test sessions without throwing validation errors
     },
     resume: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Resume",
-      required: true,
+      required: false, // Allows demo/test sessions without throwing validation errors
     },
     questions: [questionSchema],
     overallScore: {
