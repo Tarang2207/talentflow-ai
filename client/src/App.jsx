@@ -67,9 +67,10 @@ function Home() {
 
   return (
     <div className="bg-[#FAFAFA] min-h-screen">
-      <div className="max-w-5xl mx-auto px-4 pt-8 pb-20 text-center">
+      <div className="max-w-5xl mx-auto px-4 pt-12 pb-20 text-center">
+        {/* Role Mismatch Notice Banner */}
         {roleNotice && (
-          <div className="mb-8 max-w-2xl mx-auto bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl shadow-sm text-left relative flex items-start space-x-3">
+          <div className="mb-8 max-w-2xl mx-auto bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl shadow-sm text-left relative flex items-start space-x-3 animate-in fade-in slide-in-from-top-4 duration-300">
             <ShieldAlert className="h-6 w-6 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-sm text-amber-950">
@@ -105,11 +106,13 @@ function Home() {
           </div>
         )}
 
-        <div className="inline-flex items-center space-x-1.5 bg-[#EEF2FF] border border-[#E0E7FF] text-[#4F46E5] text-xs font-semibold px-3 py-1 rounded-full mb-8">
-          <Sparkles className="h-3 w-3" />
+        {/* Sparkle Badge */}
+        <div className="inline-flex items-center space-x-1.5 bg-[#EEF2FF] border border-[#E0E7FF] text-[#4F46E5] text-xs font-semibold px-3 py-1 rounded-full mb-8 hover:scale-105 transition-transform duration-300 cursor-default">
+          <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-500" />
           <span>RAG-powered screening</span>
         </div>
 
+        {/* Big H1 Typography */}
         <h1 className="text-5xl md:text-6xl font-extrabold text-[#0F172A] tracking-tight leading-[1.1] mb-6">
           Screen smarter. <br />
           <span className="text-[#0F172A]">
@@ -117,62 +120,77 @@ function Home() {
           </span>
         </h1>
 
+        {/* Subtitle text */}
         <p className="text-lg text-[#475569] max-w-2xl mx-auto mb-10 leading-relaxed">
           Upload a resume, get an instant semantic match score, then take an
           AI-led technical interview.
         </p>
 
+        {/* Smart CTA Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
           <button
             onClick={handleCandidateClick}
-            className="w-full sm:w-auto bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 py-3 rounded-lg transition flex items-center justify-center space-x-2 shadow-sm"
+            className="w-full sm:w-auto bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-6 py-3.5 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center space-x-2 group"
           >
             <span>I'm a candidate</span>
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
           </button>
 
           <button
             onClick={handleRecruiterClick}
-            className="w-full sm:w-auto bg-white hover:bg-slate-50 text-[#334155] border border-slate-200 font-semibold px-6 py-3 rounded-lg transition shadow-sm"
+            className="w-full sm:w-auto bg-white hover:bg-slate-50 text-[#334155] border border-slate-200 hover:border-slate-300 font-semibold px-6 py-3.5 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-md"
           >
             I'm a recruiter
           </button>
         </div>
 
+        {/* Animated Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-            <div className="inline-flex p-3 rounded-xl bg-[#EEF2FF] text-[#4F46E5] mb-5">
-              <Upload className="h-5 w-5" />
+          {/* Card 1 */}
+          <div className="group bg-white border border-slate-200/80 p-7 rounded-3xl transition-all duration-300 ease-out transform hover:-translate-y-2 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            <div className="inline-flex p-3.5 rounded-2xl bg-[#EEF2FF] text-[#4F46E5] mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ease-out">
+              <Upload className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+            <h3 className="text-lg font-bold text-[#0F172A] mb-2 group-hover:text-[#4F46E5] transition-colors duration-200">
               Resume vector matching
             </h3>
             <p className="text-[#475569] text-sm leading-relaxed">
-              PDF resumes are embedded and ranked against each job description.
+              PDF resumes are embedded into 384-dimensional vectors and ranked
+              against each job description.
             </p>
           </div>
 
-          <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-            <div className="inline-flex p-3 rounded-xl bg-[#ECFDF5] text-[#059669] mb-5">
-              <Briefcase className="h-5 w-5" />
+          {/* Card 2 */}
+          <div className="group bg-white border border-slate-200/80 p-7 rounded-3xl transition-all duration-300 ease-out transform hover:-translate-y-2 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            <div className="inline-flex p-3.5 rounded-2xl bg-[#ECFDF5] text-[#059669] mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 ease-out">
+              <Briefcase className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+            <h3 className="text-lg font-bold text-[#0F172A] mb-2 group-hover:text-[#059669] transition-colors duration-200">
               Ranked match leaderboard
             </h3>
             <p className="text-[#475569] text-sm leading-relaxed">
-              Recruiters see candidates sorted by score percentage.
+              Recruiters view candidates instantly sorted by cosine similarity
+              match score percentage.
             </p>
           </div>
 
-          <div className="bg-white border border-slate-100 p-6 rounded-2xl shadow-sm">
-            <div className="inline-flex p-3 rounded-xl bg-[#FFFBEB] text-[#D97706] mb-5">
-              <Mic className="h-5 w-5" />
+          {/* Card 3 */}
+          <div className="group bg-white border border-slate-200/80 p-7 rounded-3xl transition-all duration-300 ease-out transform hover:-translate-y-2 hover:border-amber-200 hover:shadow-xl hover:shadow-amber-500/10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            <div className="inline-flex p-3.5 rounded-2xl bg-[#FFFBEB] text-[#D97706] mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 ease-out">
+              <Mic className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-[#0F172A] mb-2">
+            <h3 className="text-lg font-bold text-[#0F172A] mb-2 group-hover:text-[#D97706] transition-colors duration-200">
               AI technical interview
             </h3>
             <p className="text-[#475569] text-sm leading-relaxed">
-              Step-by-step questions with instant evaluation feedback.
+              Interactive step-by-step technical screening questions with
+              instant evaluation breakdown.
             </p>
           </div>
         </div>
@@ -183,9 +201,8 @@ function Home() {
 
 function MainLayout() {
   const location = useLocation();
-  // Hide top Navbar on login, candidate portal, and recruiter dashboard
-  const hideNavbar = ["/login", "/candidate", "/recruiter"].some((path) =>
-    location.pathname.startsWith(path),
+  const hideNavbar = ["/login", "/candidate", "/recruiter", "/interview"].some(
+    (path) => location.pathname.startsWith(path),
   );
 
   return (
@@ -214,7 +231,6 @@ function MainLayout() {
             }
           />
 
-          {/* Candidate & Recruiter Screening Assessment Route */}
           <Route
             path="/interview/:jobId/:resumeId"
             element={

@@ -14,12 +14,14 @@ import {
   X,
   Users,
   ChevronDown,
+  Award,
 } from "lucide-react";
 
 export default function RecruiterDashboard() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
+  // Form State
   const [formData, setFormData] = useState({
     title: "",
     company: "TechCorp Solutions",
@@ -27,6 +29,7 @@ export default function RecruiterDashboard() {
     description: "",
   });
 
+  // Data & UI State
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [matchResults, setMatchResults] = useState([]);
@@ -35,12 +38,24 @@ export default function RecruiterDashboard() {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
 
+  // 1. Fetch All Recruiter Job Openings
   const fetchJobs = async () => {
     try {
       const { data } = await API.get("/jobs");
       setJobs(data);
-      if (data.length > 0 && !selectedJob) {
-        setSelectedJob(data[0]);
+
+      if (data && data.length > 0) {
+        setSelectedJob((currentSelected) => {
+          // If a job is already selected and still exists in data, keep it
+          if (
+            currentSelected &&
+            data.some((j) => j._id === currentSelected._id)
+          ) {
+            return currentSelected;
+          }
+          // Otherwise default to the newest posted job
+          return data[0];
+        });
       }
     } catch (err) {
       console.error("Error fetching jobs:", err);
@@ -51,6 +66,7 @@ export default function RecruiterDashboard() {
     fetchJobs();
   }, []);
 
+  // 2. Fetch Leaderboard Matches when selectedJob changes
   useEffect(() => {
     if (!selectedJob || selectedJob._id === "default-demo-job") {
       setMatchResults([
@@ -59,6 +75,8 @@ export default function RecruiterDashboard() {
           candidate: { name: "Aarav Mehta", email: "aarav@example.com" },
           extractedSkills: ["React", "Node.js", "MongoDB"],
           matchPercentage: 92,
+          interviewScore: 88,
+          interviewStatus: "Completed",
           rawText:
             "Experienced Full Stack Developer with expertise in React, Node.js, Express, and MongoDB Atlas.",
         },
@@ -67,6 +85,8 @@ export default function RecruiterDashboard() {
           candidate: { name: "Priya Nair", email: "priya@example.com" },
           extractedSkills: ["React", "Express", "Tailwind"],
           matchPercentage: 87,
+          interviewScore: 82,
+          interviewStatus: "Completed",
           rawText:
             "Frontend heavy engineer with strong experience in React, Tailwind CSS, and Node API integration.",
         },
@@ -75,6 +95,8 @@ export default function RecruiterDashboard() {
           candidate: { name: "Rohan Iyer", email: "rohan@example.com" },
           extractedSkills: ["Node.js", "MongoDB"],
           matchPercentage: 74,
+          interviewScore: null,
+          interviewStatus: "Not Started",
           rawText:
             "Backend developer focused on Node.js REST APIs, database indexing, and microservices.",
         },
@@ -102,6 +124,7 @@ export default function RecruiterDashboard() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 3. Publish New Job Opening & Auto-Select It
   const handlePublishJob = async (e) => {
     e.preventDefault();
     setPublishing(true);
@@ -110,11 +133,9 @@ export default function RecruiterDashboard() {
     try {
       const payload = {
         title: formData.title,
-        company: formData.company,
+        company: formData.company || "TechCorp Solutions",
         description: formData.description,
-        skillsRequired: formData.skillsRequired
-          ? formData.skillsRequired.split(",").map((s) => s.trim())
-          : [],
+        skillsRequired: formData.skillsRequired || "",
       };
 
       const { data } = await API.post("/jobs", payload);
@@ -123,6 +144,7 @@ export default function RecruiterDashboard() {
         text: "Opening published & vector indexed successfully!",
       });
 
+      // Reset form input fields
       setFormData({
         title: "",
         company: "TechCorp Solutions",
@@ -130,10 +152,14 @@ export default function RecruiterDashboard() {
         description: "",
       });
 
-      await fetchJobs();
-      if (data.job) {
-        setSelectedJob(data.job);
+      // Immediately set newly created job as the active card
+      const newJob = data.job || data;
+      if (newJob && newJob._id) {
+        setSelectedJob(newJob);
       }
+
+      // Refresh job list
+      await fetchJobs();
     } catch (err) {
       console.error("Job publication error:", err);
       setStatusMsg({
@@ -230,7 +256,6 @@ export default function RecruiterDashboard() {
             </p>
           </div>
 
-          {/* Mobile Back to Home button */}
           <button
             onClick={() => navigate("/")}
             className="md:hidden flex items-center space-x-2 bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 shadow-sm"
@@ -266,6 +291,7 @@ export default function RecruiterDashboard() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column: Post Opening Form */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white p-6 lg:p-8 rounded-3xl border border-slate-100 shadow-sm space-y-5">
               <h2 className="text-lg font-bold text-[#0F172A]">
@@ -331,15 +357,19 @@ export default function RecruiterDashboard() {
             </div>
           </div>
 
+          {/* Right Column: Active Job Card + Match Leaderboard */}
           <div className="lg:col-span-7 space-y-6">
+            {/* ---------------- ACTIVE JOB POSTING CARD ---------------- */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
               <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
                     <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
                       Active Opening
                     </span>
-                    {jobs.length > 1 && (
+
+                    {/* Job Dropdown Selector */}
+                    {jobs.length > 0 && (
                       <div className="relative inline-block">
                         <select
                           value={selectedJob?._id || ""}
@@ -349,24 +379,25 @@ export default function RecruiterDashboard() {
                             );
                             if (found) setSelectedJob(found);
                           }}
-                          className="text-xs font-semibold text-slate-600 bg-slate-100 rounded-md px-2 py-0.5 pr-6 appearance-none focus:outline-none cursor-pointer"
+                          className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 pr-7 appearance-none focus:outline-none cursor-pointer"
                         >
                           {jobs.map((j) => (
                             <option key={j._id} value={j._id}>
-                              Switch Job ({j.title})
+                              Switch: {j.title}
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="h-3 w-3 text-slate-500 absolute right-1.5 top-1 pointer-events-none" />
+                        <ChevronDown className="h-3.5 w-3.5 text-slate-500 absolute right-2 top-1.5 pointer-events-none" />
                       </div>
                     )}
                   </div>
-                  <h3 className="text-xl font-bold text-[#0F172A]">
+
+                  <h3 className="text-xl font-bold text-[#0F172A] pt-1">
                     {selectedJob
                       ? selectedJob.title
                       : "Full Stack MERN Developer"}
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  <p className="text-xs text-slate-500 font-medium">
                     {selectedJob?.company || "TechCorp Solutions"}
                   </p>
                 </div>
@@ -376,12 +407,12 @@ export default function RecruiterDashboard() {
                 </span>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+              <p className="text-xs text-[#475569] leading-relaxed line-clamp-3">
                 {selectedJob?.description ||
                   "Looking for a developer with Node.js, Express, React, and MongoDB experience."}
               </p>
 
-              <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-50">
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-50">
                 {selectedJob?.skillsRequired &&
                 selectedJob.skillsRequired.length > 0
                   ? selectedJob.skillsRequired.map((skill, idx) => (
@@ -405,6 +436,7 @@ export default function RecruiterDashboard() {
               </div>
             </div>
 
+            {/* ---------------- MATCH LEADERBOARD ---------------- */}
             <div className="space-y-4">
               <h2 className="text-lg font-bold text-[#0F172A]">
                 Match leaderboard
@@ -430,18 +462,10 @@ export default function RecruiterDashboard() {
               ) : (
                 <div className="space-y-3">
                   {matchResults.map((match, idx) => {
-                    const score =
-                      match.matchPercentage ||
-                      Math.round((match.score || 0.85) * 100);
+                    const score = match.matchPercentage || 85;
                     const candidateName =
                       match.candidate?.name || `Candidate #${idx + 1}`;
                     const avatarInitial = candidateName.charAt(0).toUpperCase();
-
-                    let scoreBadgeClass = "bg-[#ECFDF5] text-[#059669]";
-                    if (score < 80)
-                      scoreBadgeClass = "bg-[#FFFBEB] text-[#D97706]";
-                    if (score < 60)
-                      scoreBadgeClass = "bg-[#FEF2F2] text-[#DC2626]";
 
                     return (
                       <div
@@ -470,16 +494,26 @@ export default function RecruiterDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 shrink-0 ml-4">
-                          <span
-                            className={`text-xs font-bold px-3 py-1 rounded-full ${scoreBadgeClass}`}
-                          >
-                            {score}%
+                        <div className="flex items-center space-x-2 shrink-0 ml-4">
+                          <span className="text-xs font-bold bg-[#ECFDF5] text-[#059669] px-3 py-1 rounded-full border border-emerald-100">
+                            {score}% Match
                           </span>
+
+                          {match.interviewScore !== null &&
+                          match.interviewScore !== undefined ? (
+                            <span className="text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] px-3 py-1 rounded-full border border-indigo-100 flex items-center space-x-1">
+                              <Award className="h-3 w-3 inline" />
+                              <span>{match.interviewScore}% AI</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
+                              No Interview
+                            </span>
+                          )}
 
                           <button
                             onClick={() => setSelectedCandidate(match)}
-                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm"
+                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-sm ml-1"
                           >
                             View
                           </button>
@@ -494,6 +528,7 @@ export default function RecruiterDashboard() {
         </div>
       </main>
 
+      {/* Candidate Modal */}
       {selectedCandidate && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-lg w-full rounded-3xl p-6 lg:p-8 shadow-xl border border-slate-100 relative space-y-4">
@@ -520,20 +555,33 @@ export default function RecruiterDashboard() {
               </div>
             </div>
 
-            <div className="bg-[#EEF2FF] p-4 rounded-2xl flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#4F46E5]">
-                Vector Similarity Match
-              </span>
-              <span className="text-sm font-extrabold text-[#4F46E5]">
-                {selectedCandidate.matchPercentage || 87}%
-              </span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#ECFDF5] p-3.5 rounded-2xl border border-emerald-100">
+                <span className="text-xs font-semibold text-[#059669] block">
+                  Vector Match
+                </span>
+                <span className="text-lg font-extrabold text-[#059669]">
+                  {selectedCandidate.matchPercentage || 88}% Match
+                </span>
+              </div>
+
+              <div className="bg-[#EEF2FF] p-3.5 rounded-2xl border border-indigo-100">
+                <span className="text-xs font-semibold text-[#4F46E5] block">
+                  AI Screening Score
+                </span>
+                <span className="text-lg font-extrabold text-[#4F46E5]">
+                  {selectedCandidate.interviewScore
+                    ? `${selectedCandidate.interviewScore}% Score`
+                    : "Pending"}
+                </span>
+              </div>
             </div>
 
             <div>
               <h4 className="text-xs font-bold text-slate-700 mb-1">
                 Resume Text Snippet:
               </h4>
-              <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-40 overflow-y-auto leading-relaxed">
+              <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-36 overflow-y-auto leading-relaxed">
                 {selectedCandidate.rawText ||
                   "PDF text parsed and indexed cleanly."}
               </p>

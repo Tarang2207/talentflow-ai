@@ -2,16 +2,27 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5001/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001/api",
 });
 
-// Automatically attach JWT authorization token to every request if available
-API.interceptors.request.use((req) => {
-  const user = JSON.parse(localStorage.getItem("userInfo"));
-  if (user && user.token) {
-    req.headers.Authorization = `Bearer ${user.token}`;
-  }
-  return req;
-});
+API.interceptors.request.use(
+  (config) => {
+    try {
+      const authStorage = localStorage.getItem("auth-storage");
+      if (authStorage) {
+        const parsed = JSON.parse(authStorage);
+        const token = parsed.state?.token;
+
+        if (token && token !== "null" && token !== "undefined") {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (err) {
+      console.error("Error reading auth token:", err);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
 export default API;
