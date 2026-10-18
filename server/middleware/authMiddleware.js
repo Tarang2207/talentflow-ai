@@ -2,6 +2,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+// @desc    Verify JWT Bearer Token
 export const protect = async (req, res, next) => {
   let token;
 
@@ -11,49 +12,58 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
+      const secret =
+        process.env.JWT_SECRET || "talentflow_ai_super_secret_jwt_key_2026";
 
-      if (!token || token === "null" || token === "undefined") {
-        return res
-          .status(401)
-          .json({ message: "Not authorized, invalid token format" });
-      }
-
-      // Verify JWT against server secret
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "your_fallback_secret",
+      const decoded = jwt.verify(token, secret);
+      req.user = await User.findById(decoded.id || decoded.userId).select(
+        "-password",
       );
-
-      // Check both id or userId in token payload
-      const userId = decoded.id || decoded.userId;
-      req.user = await User.findById(userId).select("-password");
 
       if (!req.user) {
         return res
           .status(401)
-          .json({ message: "Not authorized, user profile missing" });
+          .json({ message: "User profile no longer exists" });
       }
 
       return next();
     } catch (error) {
-      console.error("JWT Auth Middleware Error:", error.message);
+      console.error("[AUTH ERROR] JWT Verification Failed:", error.message);
       return res
         .status(401)
-        .json({ message: "Not authorized, token validation failed" });
+        .json({ message: "Not authorized, token signature invalid" });
     }
   }
 
-  return res.status(401).json({ message: "Not authorized, no token provided" });
+  if (!token) {
+    return res
+      .status(401)
+      .json({ message: "Not authorized, no token provided" });
+  }
 };
 
-// Restrict access by Role
+// @desc    Authorize specific user roles (e.g. 'candidate', 'recruiter')
 export const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ message: "Not authorized, user profile missing" });
+    }
+
+    const userRole = req.user.role ? req.user.role.toLowerCase() : "";
+    const allowedRoles = roles.map((r) => r.toLowerCase());
+
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({
-        message: `Role (${req.user.role}) is not allowed to access this resource`,
+        message: `Role '${req.user.role}' is not authorized to access this route`,
       });
     }
+
     next();
   };
 };
+
+// Name aliases for backward compatibility across route files
+export const authorize = authorizeRoles;
+export const restrictTo = authorizeRoles;

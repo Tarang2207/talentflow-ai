@@ -1,16 +1,14 @@
 // server/routes/interviewRoutes.js
-import express from 'express';
+import express from "express";
 import {
-  generateInterviewSession,
-  getInterviewSession,
-  submitInterviewAnswers
-} from '../controllers/interviewController.js';
-import { protect, authorizeRoles } from '../middleware/authMiddleware.js';
+  generateInterview,
+  submitInterviewAnswer,
+} from "../controllers/interviewController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post('/generate', protect, authorizeRoles('Candidate'), generateInterviewSession);
-router.get('/:id', protect, getInterviewSession);
-router.post('/submit', protect, authorizeRoles('Candidate'), submitInterviewAnswers);
+router.post("/generate", protect, generateInterview);
+router.post("/submit", protect, submitInterviewAnswer);
 
 export default router;

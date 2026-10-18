@@ -1,21 +1,21 @@
 // client/src/pages/RecruiterDashboard.jsx
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore";
-import API from "../api/axios";
-import {
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
+import API from '../api/axios';
+import { 
   Home as HomeIcon,
-  Briefcase,
-  Bot,
-  Sparkles,
-  LogOut,
-  CheckCircle2,
+  Briefcase, 
+  Bot, 
+  Sparkles, 
+  LogOut, 
+  CheckCircle2, 
   AlertCircle,
   X,
   Users,
   ChevronDown,
-  Award,
-} from "lucide-react";
+  Award
+} from 'lucide-react';
 
 export default function RecruiterDashboard() {
   const { user, logout } = useAuthStore();
@@ -23,10 +23,10 @@ export default function RecruiterDashboard() {
 
   // Form State
   const [formData, setFormData] = useState({
-    title: "",
-    company: "TechCorp Solutions",
-    skillsRequired: "",
-    description: "",
+    title: '',
+    company: 'TechCorp Solutions',
+    skillsRequired: '',
+    description: ''
   });
 
   // Data & UI State
@@ -38,27 +38,21 @@ export default function RecruiterDashboard() {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
 
-  // 1. Fetch All Recruiter Job Openings
+  // 1. Fetch Job Openings
   const fetchJobs = async () => {
     try {
-      const { data } = await API.get("/jobs");
-      setJobs(data);
-
-      if (data && data.length > 0) {
+      const { data } = await API.get('/jobs');
+      if (Array.isArray(data) && data.length > 0) {
+        setJobs(data);
         setSelectedJob((currentSelected) => {
-          // If a job is already selected and still exists in data, keep it
-          if (
-            currentSelected &&
-            data.some((j) => j._id === currentSelected._id)
-          ) {
+          if (currentSelected && data.some((j) => j._id === currentSelected._id)) {
             return currentSelected;
           }
-          // Otherwise default to the newest posted job
           return data[0];
         });
       }
     } catch (err) {
-      console.error("Error fetching jobs:", err);
+      console.warn('Error fetching jobs:', err.message);
     }
   };
 
@@ -66,51 +60,23 @@ export default function RecruiterDashboard() {
     fetchJobs();
   }, []);
 
-  // 2. Fetch Leaderboard Matches when selectedJob changes
+  // 2. Fetch Candidate Matches
   useEffect(() => {
-    if (!selectedJob || selectedJob._id === "default-demo-job") {
-      setMatchResults([
-        {
-          _id: "cand-1",
-          candidate: { name: "Aarav Mehta", email: "aarav@example.com" },
-          extractedSkills: ["React", "Node.js", "MongoDB"],
-          matchPercentage: 92,
-          interviewScore: 88,
-          interviewStatus: "Completed",
-          rawText:
-            "Experienced Full Stack Developer with expertise in React, Node.js, Express, and MongoDB Atlas.",
-        },
-        {
-          _id: "cand-2",
-          candidate: { name: "Priya Nair", email: "priya@example.com" },
-          extractedSkills: ["React", "Express", "Tailwind"],
-          matchPercentage: 87,
-          interviewScore: 82,
-          interviewStatus: "Completed",
-          rawText:
-            "Frontend heavy engineer with strong experience in React, Tailwind CSS, and Node API integration.",
-        },
-        {
-          _id: "cand-3",
-          candidate: { name: "Rohan Iyer", email: "rohan@example.com" },
-          extractedSkills: ["Node.js", "MongoDB"],
-          matchPercentage: 74,
-          interviewScore: null,
-          interviewStatus: "Not Started",
-          rawText:
-            "Backend developer focused on Node.js REST APIs, database indexing, and microservices.",
-        },
-      ]);
-      return;
-    }
-
     const fetchMatches = async () => {
       setLoadingMatches(true);
+      const targetJobId = selectedJob?._id || 'default-job';
+
       try {
-        const { data } = await API.get(`/match/job-resumes/${selectedJob._id}`);
-        setMatchResults(data.matches || []);
+        const { data } = await API.get(`/match/job-resumes/${targetJobId}`);
+        console.log('Leaderboard API Response:', data);
+
+        if (data && Array.isArray(data.matches)) {
+          setMatchResults(data.matches);
+        } else {
+          setMatchResults([]);
+        }
       } catch (err) {
-        console.error("Error fetching vector matches:", err);
+        console.error('Error fetching leaderboard matches:', err.response?.data || err.message);
         setMatchResults([]);
       } finally {
         setLoadingMatches(false);
@@ -124,7 +90,7 @@ export default function RecruiterDashboard() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 3. Publish New Job Opening & Auto-Select It
+  // 3. Publish New Job Opening
   const handlePublishJob = async (e) => {
     e.preventDefault();
     setPublishing(true);
@@ -133,38 +99,32 @@ export default function RecruiterDashboard() {
     try {
       const payload = {
         title: formData.title,
-        company: formData.company || "TechCorp Solutions",
+        company: formData.company || 'TechCorp Solutions',
         description: formData.description,
-        skillsRequired: formData.skillsRequired || "",
+        skillsRequired: formData.skillsRequired || ''
       };
 
-      const { data } = await API.post("/jobs", payload);
-      setStatusMsg({
-        type: "success",
-        text: "Opening published & vector indexed successfully!",
-      });
+      const { data } = await API.post('/jobs', payload);
+      setStatusMsg({ type: 'success', text: 'Opening published & vector indexed successfully!' });
 
-      // Reset form input fields
       setFormData({
-        title: "",
-        company: "TechCorp Solutions",
-        skillsRequired: "",
-        description: "",
+        title: '',
+        company: 'TechCorp Solutions',
+        skillsRequired: '',
+        description: ''
       });
 
-      // Immediately set newly created job as the active card
       const newJob = data.job || data;
       if (newJob && newJob._id) {
         setSelectedJob(newJob);
       }
 
-      // Refresh job list
       await fetchJobs();
     } catch (err) {
-      console.error("Job publication error:", err);
+      console.error('Job publication error:', err);
       setStatusMsg({
-        type: "error",
-        text: err.response?.data?.message || "Failed to publish job opening",
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to publish job opening'
       });
     } finally {
       setPublishing(false);
@@ -173,21 +133,19 @@ export default function RecruiterDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex">
-      {/* ------------------ LEFT SIDEBAR ------------------ */}
+      {/* LEFT SIDEBAR */}
       <aside className="w-64 bg-[#0B0F19] text-slate-300 flex flex-col justify-between p-6 shrink-0 hidden md:flex">
         <div>
           <Link to="/" className="flex items-center space-x-3 mb-10">
             <div className="h-9 w-9 rounded-xl bg-[#4F46E5] flex items-center justify-center text-white font-black text-xl shadow-md">
               🤖
             </div>
-            <span className="text-white font-bold text-xl tracking-tight">
-              TalentFlow AI
-            </span>
+            <span className="text-white font-bold text-xl tracking-tight">TalentFlow AI</span>
           </Link>
 
           <nav className="space-y-2">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate('/')}
               className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition"
             >
               <HomeIcon className="h-5 w-5" />
@@ -195,7 +153,7 @@ export default function RecruiterDashboard() {
             </button>
 
             <button
-              onClick={() => navigate("/recruiter")}
+              onClick={() => navigate('/recruiter')}
               className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl bg-[#4F46E5] text-white font-semibold text-sm transition"
             >
               <Briefcase className="h-5 w-5" />
@@ -203,11 +161,7 @@ export default function RecruiterDashboard() {
             </button>
 
             <button
-              onClick={() =>
-                navigate(
-                  `/interview/${selectedJob?._id || "default-job"}/demo-resume`,
-                )
-              }
+              onClick={() => navigate(`/interview/${selectedJob?._id || 'default-job'}/demo-resume`)}
               className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 font-medium text-sm transition"
             >
               <Bot className="h-5 w-5" />
@@ -219,22 +173,20 @@ export default function RecruiterDashboard() {
         <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-3 overflow-hidden">
             <div className="h-9 w-9 rounded-full bg-[#4F46E5] text-white font-bold flex items-center justify-center text-sm shrink-0">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "R"}
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'R'}
             </div>
             <div className="truncate">
               <p className="text-sm font-semibold text-white truncate">
-                {user?.name || "Recruiter"}
+                {user?.name || 'Recruiter'}
               </p>
-              <p className="text-xs text-slate-400 capitalize">
-                {user?.role || "Recruiter"}
-              </p>
+              <p className="text-xs text-slate-400 capitalize">{user?.role || 'Recruiter'}</p>
             </div>
           </div>
 
           <button
             onClick={() => {
               logout();
-              navigate("/login");
+              navigate('/login');
             }}
             className="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg transition"
             title="Log Out"
@@ -244,65 +196,46 @@ export default function RecruiterDashboard() {
         </div>
       </aside>
 
-      {/* ------------------ MAIN CONTENT AREA ------------------ */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto overflow-y-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">
-              Recruiter Dashboard
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Post jobs and review vector-search candidate matches.
-            </p>
+            <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">Recruiter Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-1">Post jobs and review vector-search candidate matches.</p>
           </div>
-
-          <button
-            onClick={() => navigate("/")}
-            className="md:hidden flex items-center space-x-2 bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 shadow-sm"
-          >
-            <HomeIcon className="h-4 w-4" />
-            <span>Home</span>
-          </button>
         </div>
 
         {statusMsg && (
           <div
             className={`mb-6 p-4 rounded-2xl border text-sm flex items-center justify-between ${
-              statusMsg.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                : "bg-rose-50 border-rose-200 text-rose-900"
+              statusMsg.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border-rose-200 text-rose-900'
             }`}
           >
             <div className="flex items-center space-x-2">
-              {statusMsg.type === "success" ? (
+              {statusMsg.type === 'success' ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
               ) : (
                 <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
               )}
               <span className="font-semibold">{statusMsg.text}</span>
             </div>
-            <button
-              onClick={() => setStatusMsg(null)}
-              className="p-1 hover:opacity-75"
-            >
+            <button onClick={() => setStatusMsg(null)} className="p-1 hover:opacity-75">
               <X className="h-4 w-4" />
             </button>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Post Opening Form */}
+          {/* Post Opening Form */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white p-6 lg:p-8 rounded-3xl border border-slate-100 shadow-sm space-y-5">
-              <h2 className="text-lg font-bold text-[#0F172A]">
-                Post new opening
-              </h2>
+              <h2 className="text-lg font-bold text-[#0F172A]">Post new opening</h2>
 
               <form onSubmit={handlePublishJob} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Job title
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Job title</label>
                   <input
                     type="text"
                     name="title"
@@ -315,9 +248,7 @@ export default function RecruiterDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Required skills
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Required skills</label>
                   <input
                     type="text"
                     name="skillsRequired"
@@ -329,9 +260,7 @@ export default function RecruiterDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Description
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Description</label>
                   <textarea
                     rows={4}
                     name="description"
@@ -349,17 +278,14 @@ export default function RecruiterDashboard() {
                   className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold py-3 px-4 rounded-xl transition shadow-sm text-sm disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span>
-                    {publishing ? "Generating Embedding..." : "Publish & index"}
-                  </span>
+                  <span>{publishing ? 'Generating Embedding...' : 'Publish & index'}</span>
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Right Column: Active Job Card + Match Leaderboard */}
+          {/* Active Job Card + Match Leaderboard */}
           <div className="lg:col-span-7 space-y-6">
-            {/* ---------------- ACTIVE JOB POSTING CARD ---------------- */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -368,15 +294,12 @@ export default function RecruiterDashboard() {
                       Active Opening
                     </span>
 
-                    {/* Job Dropdown Selector */}
                     {jobs.length > 0 && (
                       <div className="relative inline-block">
                         <select
-                          value={selectedJob?._id || ""}
+                          value={selectedJob?._id || ''}
                           onChange={(e) => {
-                            const found = jobs.find(
-                              (j) => j._id === e.target.value,
-                            );
+                            const found = jobs.find((j) => j._id === e.target.value);
                             if (found) setSelectedJob(found);
                           }}
                           className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 pr-7 appearance-none focus:outline-none cursor-pointer"
@@ -393,12 +316,10 @@ export default function RecruiterDashboard() {
                   </div>
 
                   <h3 className="text-xl font-bold text-[#0F172A] pt-1">
-                    {selectedJob
-                      ? selectedJob.title
-                      : "Full Stack MERN Developer"}
+                    {selectedJob ? selectedJob.title : 'Full Stack MERN Developer'}
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
-                    {selectedJob?.company || "TechCorp Solutions"}
+                    {selectedJob?.company || 'TechCorp Solutions'}
                   </p>
                 </div>
 
@@ -409,62 +330,31 @@ export default function RecruiterDashboard() {
 
               <p className="text-xs text-[#475569] leading-relaxed line-clamp-3">
                 {selectedJob?.description ||
-                  "Looking for a developer with Node.js, Express, React, and MongoDB experience."}
+                  'Looking for a developer with Node.js, Express, React, and MongoDB experience.'}
               </p>
-
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-50">
-                {selectedJob?.skillsRequired &&
-                selectedJob.skillsRequired.length > 0
-                  ? selectedJob.skillsRequired.map((skill, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-[#EEF2FF] text-[#4F46E5] text-xs font-semibold px-2.5 py-1 rounded-lg"
-                      >
-                        {skill}
-                      </span>
-                    ))
-                  : ["React", "Node.js", "MongoDB", "Express", "Tailwind"].map(
-                      (tech) => (
-                        <span
-                          key={tech}
-                          className="bg-[#EEF2FF] text-[#4F46E5] text-xs font-semibold px-2.5 py-1 rounded-lg"
-                        >
-                          {tech}
-                        </span>
-                      ),
-                    )}
-              </div>
             </div>
 
-            {/* ---------------- MATCH LEADERBOARD ---------------- */}
+            {/* Match Leaderboard Section */}
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-[#0F172A]">
-                Match leaderboard
-              </h2>
+              <h2 className="text-lg font-bold text-[#0F172A]">Match leaderboard</h2>
 
               {loadingMatches ? (
                 <div className="p-8 bg-white rounded-3xl border border-slate-100 text-center">
-                  <p className="text-slate-400 text-sm">
-                    Querying MongoDB $vectorSearch Index...
-                  </p>
+                  <p className="text-slate-400 text-sm">Querying candidate vector matches...</p>
                 </div>
               ) : matchResults.length === 0 ? (
-                <div className="p-8 bg-white rounded-3xl border border-slate-100 text-center space-y-2">
-                  <Users className="h-8 w-8 text-slate-300 mx-auto" />
-                  <p className="text-sm font-bold text-slate-700">
-                    No Candidate Matches Found Yet
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    When candidates upload resumes for this role, vector matches
-                    will appear here automatically.
+                <div className="bg-white p-10 rounded-3xl border border-slate-100 text-center space-y-3">
+                  <Users className="h-10 w-10 text-slate-300 mx-auto" />
+                  <h3 className="text-sm font-bold text-slate-700">No Candidate Matches Found Yet</h3>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    When candidates complete an AI assessment or upload a resume for this role, their real score and name will appear here automatically.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {matchResults.map((match, idx) => {
-                    const score = match.matchPercentage || 85;
-                    const candidateName =
-                      match.candidate?.name || `Candidate #${idx + 1}`;
+                    const score = match.matchPercentage || 88;
+                    const candidateName = match.candidate?.name || 'Candidate';
                     const avatarInitial = candidateName.charAt(0).toUpperCase();
 
                     return (
@@ -486,10 +376,9 @@ export default function RecruiterDashboard() {
                               {candidateName}
                             </h4>
                             <p className="text-xs text-slate-500 truncate mt-0.5">
-                              {match.extractedSkills &&
-                              match.extractedSkills.length > 0
-                                ? match.extractedSkills.join(" · ")
-                                : "React · Node.js · MongoDB"}
+                              {Array.isArray(match.extractedSkills) && match.extractedSkills.length > 0
+                                ? match.extractedSkills.join(' · ')
+                                : 'React · Node.js · MongoDB'}
                             </p>
                           </div>
                         </div>
@@ -499,8 +388,7 @@ export default function RecruiterDashboard() {
                             {score}% Match
                           </span>
 
-                          {match.interviewScore !== null &&
-                          match.interviewScore !== undefined ? (
+                          {match.interviewScore !== null && match.interviewScore !== undefined ? (
                             <span className="text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] px-3 py-1 rounded-full border border-indigo-100 flex items-center space-x-1">
                               <Award className="h-3 w-3 inline" />
                               <span>{match.interviewScore}% AI</span>
@@ -528,7 +416,7 @@ export default function RecruiterDashboard() {
         </div>
       </main>
 
-      {/* Candidate Modal */}
+      {/* Candidate Profile Modal */}
       {selectedCandidate && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-lg w-full rounded-3xl p-6 lg:p-8 shadow-xl border border-slate-100 relative space-y-4">
@@ -541,49 +429,38 @@ export default function RecruiterDashboard() {
 
             <div className="flex items-center space-x-3">
               <div className="h-12 w-12 rounded-full bg-[#4F46E5] text-white font-bold flex items-center justify-center text-lg">
-                {(selectedCandidate.candidate?.name || "C")
-                  .charAt(0)
-                  .toUpperCase()}
+                {(selectedCandidate.candidate?.name || 'C').charAt(0).toUpperCase()}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[#0F172A]">
-                  {selectedCandidate.candidate?.name || "Candidate Profile"}
+                  {selectedCandidate.candidate?.name || 'Candidate Profile'}
                 </h3>
-                <p className="text-xs text-slate-500">
-                  {selectedCandidate.candidate?.email || "N/A"}
-                </p>
+                <p className="text-xs text-slate-500">{selectedCandidate.candidate?.email || 'N/A'}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#ECFDF5] p-3.5 rounded-2xl border border-emerald-100">
-                <span className="text-xs font-semibold text-[#059669] block">
-                  Vector Match
-                </span>
+                <span className="text-xs font-semibold text-[#059669] block">Vector Match</span>
                 <span className="text-lg font-extrabold text-[#059669]">
                   {selectedCandidate.matchPercentage || 88}% Match
                 </span>
               </div>
 
               <div className="bg-[#EEF2FF] p-3.5 rounded-2xl border border-indigo-100">
-                <span className="text-xs font-semibold text-[#4F46E5] block">
-                  AI Screening Score
-                </span>
+                <span className="text-xs font-semibold text-[#4F46E5] block">AI Screening Score</span>
                 <span className="text-lg font-extrabold text-[#4F46E5]">
                   {selectedCandidate.interviewScore
                     ? `${selectedCandidate.interviewScore}% Score`
-                    : "Pending"}
+                    : 'Pending'}
                 </span>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-slate-700 mb-1">
-                Resume Text Snippet:
-              </h4>
+              <h4 className="text-xs font-bold text-slate-700 mb-1">Resume Snippet:</h4>
               <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-36 overflow-y-auto leading-relaxed">
-                {selectedCandidate.rawText ||
-                  "PDF text parsed and indexed cleanly."}
+                {selectedCandidate.rawText || 'Resume parsed and indexed cleanly.'}
               </p>
             </div>
 

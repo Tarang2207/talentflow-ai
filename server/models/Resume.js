@@ -1,33 +1,28 @@
 // server/models/Resume.js
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const resumeSchema = new mongoose.Schema(
   {
-    candidate: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: 'User',
+      required: true
     },
     fileName: {
       type: String,
-      required: true,
+      default: 'resume.pdf'
     },
     rawText: {
       type: String,
-      required: true,
+      default: ''
     },
-    extractedSkills: [
-      {
-        type: String,
-      },
-    ],
-    // 384-dimensional vector array for local transformer embeddings
-    embedding: {
-      type: [Number],
-      default: [],
-    },
+    extractedSkills: {
+      type: [String],
+      default: []
+    }
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-export default mongoose.model("Resume", resumeSchema);
+const Resume = mongoose.models.Resume || mongoose.model('Resume', resumeSchema);
+export default Resume;

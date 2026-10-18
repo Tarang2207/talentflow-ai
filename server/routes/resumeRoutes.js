@@ -1,30 +1,32 @@
 // server/routes/resumeRoutes.js
 import express from "express";
 import multer from "multer";
-import { uploadResume } from "../controllers/resumeController.js";
-import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
+import { uploadResume, getMyResume } from "../controllers/resumeController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Memory storage keeps files in RAM buffer rather than writing to disk
+const storage = multer.memoryStorage();
 const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF documents are allowed"), false);
-    }
-  },
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-router.post(
-  "/upload",
-  protect,
-  authorizeRoles("Candidate"),
-  upload.single("resume"),
-  uploadResume,
-);
+// Flexible middleware that captures any file field cleanly
+const handleMulterUpload = (req, res, next) => {
+  upload.any()(req, res, (err) => {
+    if (err) {
+      console.error("[MULTER ERROR]:", err.message);
+      return res.status(400).json({ message: `Upload error: ${err.message}` });
+    }
+    if (req.files && req.files.length > 0) {
+      req.file = req.files[0];
+    }
+    next();
+  });
+};
+
+router.post("/upload", protect, handleMulterUpload, uploadResume);
+router.get("/my-resume", protect, getMyResume);
 
 export default router;

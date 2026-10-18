@@ -8,17 +8,33 @@ const API = axios.create({
 API.interceptors.request.use(
   (config) => {
     try {
-      const authStorage = localStorage.getItem("auth-storage");
-      if (authStorage) {
-        const parsed = JSON.parse(authStorage);
-        const token = parsed.state?.token;
+      let token = localStorage.getItem("token");
 
-        if (token && token !== "null" && token !== "undefined") {
-          config.headers.Authorization = `Bearer ${token}`;
+      // Fallback 1: Zustand persistent storage key
+      if (!token) {
+        const authStorage = localStorage.getItem("auth-storage");
+        if (authStorage) {
+          const parsed = JSON.parse(authStorage);
+          token = parsed.state?.token || parsed.token;
         }
       }
+
+      // Fallback 2: Standalone user JSON key
+      if (!token) {
+        const userStorage = localStorage.getItem("user");
+        if (userStorage) {
+          const parsed = JSON.parse(userStorage);
+          token = parsed.token;
+        }
+      }
+
+      if (token && token !== "undefined" && token !== "null") {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.warn("[AXIOS] No valid Auth token found in LocalStorage.");
+      }
     } catch (err) {
-      console.error("Error reading auth token:", err);
+      console.error("[AXIOS INTERCEPTOR ERROR]:", err);
     }
     return config;
   },
