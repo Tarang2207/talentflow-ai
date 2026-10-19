@@ -71,3 +71,43 @@ export const getJobs = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get single job by ID
+// @route   GET /api/jobs/:id
+export const getJobById = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ message: "Job opening not found" });
+    }
+    return res.status(200).json(job);
+  } catch (error) {
+    console.error("[GET JOB BY ID ERROR]:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update Job Assessment Questions
+// @route   PUT /api/jobs/:id
+export const updateJobQuestions = async (req, res) => {
+  try {
+    const { customQuestions } = req.body;
+    const job = await Job.findByIdAndUpdate(
+      req.params.id,
+      { customQuestions },
+      { new: true },
+    );
+
+    if (!job) {
+      return res.status(404).json({ message: "Job opening not found" });
+    }
+
+    return res.status(200).json({
+      message: "Assessment questions updated successfully!",
+      job,
+    });
+  } catch (error) {
+    console.error("[UPDATE JOB QUESTIONS ERROR]:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};

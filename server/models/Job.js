@@ -32,6 +32,14 @@ const jobSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    customQuestions: {
+      type: [String],
+      default: [
+        "Explain the key differences between SQL and NoSQL databases in MERN applications.",
+        "How do you manage global state using Zustand or Redux in React?",
+        "What strategies do you use to optimize Express REST API endpoints?",
+      ],
+    },
   },
   { timestamps: true },
 );

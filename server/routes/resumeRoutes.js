@@ -1,32 +1,22 @@
 // server/routes/resumeRoutes.js
 import express from "express";
 import multer from "multer";
-import { uploadResume, getMyResume } from "../controllers/resumeController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import {
+  uploadResume,
+  getMyResume,
+  getResumeById,
+  getResumeFile,
+} from "../controllers/resumeController.js";
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const router = express.Router();
 
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-});
-
-// Flexible middleware that captures any file field cleanly
-const handleMulterUpload = (req, res, next) => {
-  upload.any()(req, res, (err) => {
-    if (err) {
-      console.error("[MULTER ERROR]:", err.message);
-      return res.status(400).json({ message: `Upload error: ${err.message}` });
-    }
-    if (req.files && req.files.length > 0) {
-      req.file = req.files[0];
-    }
-    next();
-  });
-};
-
-router.post("/upload", protect, handleMulterUpload, uploadResume);
+router.post("/upload", protect, upload.single("resume"), uploadResume);
 router.get("/my-resume", protect, getMyResume);
+router.get("/file/:id", getResumeFile);
+router.get("/:id", protect, getResumeById);
 
 export default router;

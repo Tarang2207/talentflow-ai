@@ -8,7 +8,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
-import resumeRoutes from "./routes/resumeRoutes.js";
+import resumeRoutes from './routes/resumeRoutes.js';
 import jobRoutes from "./routes/jobRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
@@ -22,7 +22,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/resumes", resumeRoutes);
+app.use('/api/resumes', resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/interviews", interviewRoutes);
