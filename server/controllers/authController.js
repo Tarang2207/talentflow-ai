@@ -5,7 +5,8 @@ import jwt from "jsonwebtoken";
 
 // Helper function to generate JWT
 const generateToken = (id) => {
-  const secret = process.process.env.JWT_SECRET || "fallback_secret_key";
+  // FIXED: Changed process.process.env to process.env
+  const secret = process.env.JWT_SECRET || "fallback_secret_key";
   return jwt.sign({ id }, secret, { expiresIn: "30d" });
 };
 
@@ -15,16 +16,18 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body || {};
 
-    // 1. Validate required fields
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ message: "Please provide name, email, and password." });
+        .json({ message: "Please fill in all required fields." });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    // Normalize role string to lowercase
+    const normalizedRole = role
+      ? role.toString().toLowerCase().trim()
+      : "candidate";
 
-    // 2. Check if user already exists
     const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res
@@ -32,19 +35,16 @@ export const registerUser = async (req, res) => {
         .json({ message: "User already exists with this email address." });
     }
 
-    // 3. Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Create user record
     const user = await User.create({
       name,
       email: normalizedEmail,
       password: hashedPassword,
-      role: role || "candidate",
+      role: normalizedRole,
     });
 
-    // 5. Return success response with auth token
     return res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -54,12 +54,9 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("[REGISTER USER ERROR]:", error);
-    return res
-      .status(500)
-      .json({ message: error.message || "Server error during registration" });
+    return res.status(500).json({ message: error.message });
   }
 };
-
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
 export const loginUser = async (req, res) => {

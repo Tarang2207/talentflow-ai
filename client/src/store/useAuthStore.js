@@ -1,4 +1,3 @@
-// client/src/store/useAuthStore.js
 import { create } from "zustand";
 import API from "../api/axios";
 

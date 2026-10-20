@@ -5,28 +5,29 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Please provide a name"],
-      trim: true,
+      required: true,
     },
     email: {
       type: String,
-      required: [true, "Please provide an email"],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      required: [true, "Please provide a password"],
-      minlength: 6,
+      required: true,
     },
     role: {
       type: String,
-      enum: ["Candidate", "Recruiter"],
-      default: "Candidate",
+      enum: ["candidate", "recruiter"],
+      default: "candidate",
+      lowercase: true,
+      trim: true,
     },
   },
   { timestamps: true },
 );
 
-export default mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+export default User;
