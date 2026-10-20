@@ -2,9 +2,11 @@
 import mongoose from "mongoose";
 import path from "path";
 import Resume from "../models/Resume.js";
-// @desc    Upload & Parse Candidate Resume
-// @route   POST /api/resumes/upload
-// server/controllers/resumeController.js
+// Helper function to safely escape regular expression special characters (e.g. +, *, ?, ^, $)
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 export const uploadResume = async (req, res) => {
   try {
     if (!req.file) {
@@ -35,7 +37,7 @@ export const uploadResume = async (req, res) => {
       rawText = "Resume document ingested and vector indexed cleanly.";
     }
 
-    // Extract basic tech keywords
+    // List of target technical skills
     const commonSkills = [
       "React",
       "Node.js",
@@ -46,13 +48,19 @@ export const uploadResume = async (req, res) => {
       "Java",
       "Tailwind",
       "C++",
+      "C#",
       "SQL",
       "REST API",
       "Git",
     ];
-    const extractedSkills = commonSkills.filter((skill) =>
-      new RegExp(`\\b${skill}\\b`, "i").test(rawText),
-    );
+
+    // Safely match skills without regex syntax collisions
+    const extractedSkills = commonSkills.filter((skill) => {
+      const escaped = escapeRegExp(skill);
+      // Matches skill surrounded by boundaries/punctuation or whitespace
+      const pattern = new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, "i");
+      return pattern.test(rawText);
+    });
 
     // Atomic MongoDB upsert
     const resume = await Resume.findOneAndUpdate(
