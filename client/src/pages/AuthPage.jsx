@@ -22,20 +22,26 @@ export default function AuthPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (isLogin) {
-        await login(formData.email, formData.password);
-      } else {
-        await register(
-          formData.name || formData.email.split("@")[0],
-          formData.email,
-          formData.password,
-          formData.role,
-        );
-      }
-      navigate("/");
-    } catch (err) {
-      console.error("Authentication Error:", err);
+
+    let result;
+
+    if (isLogin) {
+      result = await login(
+        formData.email.trim().toLowerCase(),
+        formData.password,
+      );
+    } else {
+      result = await register({
+        name: formData.name,
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        role: formData.role ? formData.role.toLowerCase() : "candidate",
+      });
+    }
+
+    if (result && result.success) {
+      // Directs user to the home page upon successful login or sign-up
+      navigate("/", { replace: true });
     }
   };
 
@@ -203,7 +209,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm text-sm disabled:opacity-50 mt-2"
+              className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm text-sm disabled:opacity-50 mt-2 cursor-pointer"
             >
               <span>{loading ? "Processing..." : "Continue"}</span>
               <ArrowRight className="h-4 w-4" />

@@ -76,7 +76,7 @@ export default function InterviewPage() {
 
       if (data?.sessionId) setSessionId(data.sessionId);
 
-      if (data?.isCompleted || data?.status === "Completed") {
+      if (!forceRetake && (data?.isCompleted || data?.status === "Completed")) {
         setIsCompleted(true);
         setOverallScore(data.overallScore || 85);
         if (Array.isArray(data.questions) && data.questions.length > 0) {
@@ -138,7 +138,8 @@ export default function InterviewPage() {
 
       setEvaluations((prev) => ({ ...prev, [currentIdx]: result }));
 
-      if (data?.isCompleted) {
+      // Only complete on backend signal if user has reached the final question
+      if (data?.isCompleted && currentIdx >= questions.length - 1) {
         setIsCompleted(true);
         setOverallScore(data.overallScore || 86);
       }

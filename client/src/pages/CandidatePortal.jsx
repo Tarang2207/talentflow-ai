@@ -227,21 +227,21 @@ export default function CandidatePortal() {
                   <p className="text-xs font-bold text-slate-700 mb-2">
                     Active Resume on File:
                   </p>
-                  <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 text-xs space-y-1">
-                    <p className="font-semibold text-indigo-900 truncate">
-                      {myResume.fileName}
-                    </p>
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {myResume.extractedSkills?.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[10px] font-medium border border-indigo-200"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                  <a
+                    href={`http://localhost:5001/uploads/${myResume.fileName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 hover:border-indigo-300 text-xs space-y-1 block transition group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-indigo-900 truncate group-hover:text-indigo-600">
+                        {myResume.originalName || myResume.fileName}
+                      </p>
+                      <span className="text-[10px] text-indigo-600 font-bold shrink-0 ml-2">
+                        View PDF ↗
+                      </span>
                     </div>
-                  </div>
+                  </a>
                 </div>
               )}
             </div>

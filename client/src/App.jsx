@@ -28,11 +28,14 @@ function Home() {
   const { user, logout } = useAuthStore();
   const [roleNotice, setRoleNotice] = useState(null);
 
+  // Inside client/src/App.jsx -> Home() component
+
   const handleCandidateClick = () => {
     setRoleNotice(null);
     if (!user) {
       navigate("/login");
-    } else if (user.role === "Candidate") {
+    } else if (user.role?.toLowerCase() === "candidate") {
+      // <-- Added .toLowerCase()
       navigate("/candidate");
     } else {
       setRoleNotice({
@@ -50,7 +53,8 @@ function Home() {
     setRoleNotice(null);
     if (!user) {
       navigate("/login");
-    } else if (user.role === "Recruiter") {
+    } else if (user.role?.toLowerCase() === "recruiter") {
+      // <-- Added .toLowerCase()
       navigate("/recruiter");
     } else {
       setRoleNotice({
@@ -63,7 +67,6 @@ function Home() {
       });
     }
   };
-
   return (
     <div className="bg-[#FAFAFA] min-h-screen">
       <div className="max-w-5xl mx-auto px-4 pt-12 pb-20 text-center">
@@ -211,7 +214,6 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<AuthPage />} />
-
           <Route
             path="/candidate"
             element={
@@ -220,20 +222,35 @@ function MainLayout() {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/candidate"
+            element={
+              <ProtectedRoute allowedRoles={["Candidate", "candidate"]}>
+                <CandidatePortal />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/recruiter"
             element={
-              <ProtectedRoute allowedRoles={["Recruiter"]}>
+              <ProtectedRoute allowedRoles={["Recruiter", "recruiter"]}>
                 <RecruiterDashboard />
               </ProtectedRoute>
             }
           />
-
+          
+          {/* Inside <Routes> */}
           <Route
             path="/interview/:jobId/:resumeId"
             element={
-              <ProtectedRoute allowedRoles={["Candidate", "Recruiter"]}>
+              <ProtectedRoute
+                allowedRoles={[
+                  "Candidate",
+                  "candidate",
+                  "Recruiter",
+                  "recruiter",
+                ]}
+              >
                 <InterviewPage />
               </ProtectedRoute>
             }

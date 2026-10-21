@@ -9,11 +9,23 @@ import jobRoutes from "./routes/jobRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 connectDB();
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure 'uploads' directory exists
+const uploadsDir = path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 app.use(
   cors({
@@ -38,6 +50,12 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/match", matchRoutes);
+
+// Serve uploaded static files publicly
+app.use("/uploads", express.static(uploadsDir));
+
+// Explicitly serve static files from server/uploads
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

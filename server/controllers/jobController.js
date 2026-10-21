@@ -95,7 +95,7 @@ export const updateJobQuestions = async (req, res) => {
     const job = await Job.findByIdAndUpdate(
       req.params.id,
       { customQuestions },
-      { new: true },
+      { returnDocument: "after" },
     );
 
     if (!job) {

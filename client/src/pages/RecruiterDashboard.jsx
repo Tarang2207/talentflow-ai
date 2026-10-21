@@ -837,7 +837,7 @@ export default function RecruiterDashboard() {
                 {/* OPEN ORIGINAL PDF IN NEW TAB */}
                 {viewingResume?._id && (
                   <a
-                    href={`http://localhost:5001/api/resumes/file/${viewingResume._id}`}
+                    href={`http://localhost:5001/uploads/${viewingResume.fileName}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3.5 py-2 rounded-xl text-xs transition border border-indigo-200/80 flex items-center space-x-1.5"
@@ -880,7 +880,7 @@ export default function RecruiterDashboard() {
             <div className="flex-1 overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200/80 font-mono text-xs text-slate-700 leading-relaxed min-h-[250px]">
               {viewingResume?._id ? (
                 <iframe
-                  src={`http://localhost:5001/api/resumes/file/${viewingResume._id}`}
+                  src={`http://localhost:5001/uploads/${viewingResume.fileName}`}
                   title="Candidate Resume PDF"
                   className="w-full h-96 rounded-xl border-none"
                 />

@@ -1,11 +1,8 @@
 // server/controllers/resumeController.js
+import fs from "fs";
 import mongoose from "mongoose";
 import path from "path";
 import Resume from "../models/Resume.js";
-// Helper function to safely escape regular expression special characters (e.g. +, *, ?, ^, $)
-const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
 
 export const uploadResume = async (req, res) => {
   try {
@@ -19,25 +16,23 @@ export const uploadResume = async (req, res) => {
         .json({ message: "User session expired. Please log in again." });
     }
 
-    const fileName = req.file.originalname || "Resume.pdf";
+    // 1. Store the exact Multer disk filename and path
+    const savedFileName = req.file.filename;
+    const originalName = req.file.originalname || "Resume.pdf";
     const contentType = req.file.mimetype || "application/pdf";
-    const fileBuffer = req.file.buffer;
+    const filePath = req.file.path;
 
-    let rawText = "";
-
-    // Safe text extraction
-    try {
-      rawText = fileBuffer.toString("utf-8").replace(/[^\x20-\x7E\n]/g, " ");
-    } catch (parseErr) {
-      console.warn("[PARSE WARNING]:", parseErr.message);
-      rawText = "Resume document ingested successfully.";
+    // 2. Read file safely from disk
+    let rawText = "Resume uploaded and vector indexed successfully.";
+    if (fs.existsSync(filePath)) {
+      try {
+        const dataBuffer = fs.readFileSync(filePath);
+        rawText = dataBuffer.toString("utf-8").replace(/[^\x20-\x7E\n]/g, " ");
+      } catch (readErr) {
+        console.warn("File read fallback triggered:", readErr.message);
+      }
     }
 
-    if (!rawText || rawText.trim().length === 0) {
-      rawText = "Resume document ingested and vector indexed cleanly.";
-    }
-
-    // List of target technical skills
     const commonSkills = [
       "React",
       "Node.js",
@@ -47,36 +42,31 @@ export const uploadResume = async (req, res) => {
       "Python",
       "Java",
       "Tailwind",
-      "C++",
-      "C#",
       "SQL",
       "REST API",
       "Git",
     ];
 
-    // Safely match skills without regex syntax collisions
-    const extractedSkills = commonSkills.filter((skill) => {
-      const escaped = escapeRegExp(skill);
-      // Matches skill surrounded by boundaries/punctuation or whitespace
-      const pattern = new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, "i");
-      return pattern.test(rawText);
-    });
+    const extractedSkills = commonSkills.filter((skill) =>
+      new RegExp(`(?:^|\\W)${skill}(?:$|\\W)`, "i").test(rawText),
+    );
 
-    // Atomic MongoDB upsert
+    // 3. Save disk filename to MongoDB
     const resume = await Resume.findOneAndUpdate(
       { user: req.user._id },
       {
         user: req.user._id,
-        fileName,
-        contentType,
-        fileBuffer,
-        rawText,
+        fileName: savedFileName, // 👈 Saved disk filename (with timestamp)
+        originalName: originalName,
+        filePath: filePath,
+        contentType: contentType,
+        rawText: rawText.trim() || "Resume document ingested cleanly.",
         extractedSkills:
           extractedSkills.length > 0
             ? extractedSkills
             : ["React", "Node.js", "Express", "MongoDB"],
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
 
     return res.status(200).json({

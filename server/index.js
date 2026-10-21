@@ -3,12 +3,15 @@ import dns from "dns";
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
-import resumeRoutes from './routes/resumeRoutes.js';
+import resumeRoutes from "./routes/resumeRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
@@ -17,16 +20,31 @@ dotenv.config();
 
 const app = express();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure 'uploads' directory exists
+const uploadsDir = path.resolve("uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.use(cors());
 app.use(express.json());
 
 // Routes
 app.use(express.json());
 app.use("/api/auth", authRoutes);
-app.use('/api/resumes', resumeRoutes);
+app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/interviews", interviewRoutes);
+app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
+// Serve uploaded static files publicly
+app.use("/uploads", express.static(uploadsDir));
+
+// Explicitly serve static files from server/uploads
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "success", message: "Backend is running!" });
