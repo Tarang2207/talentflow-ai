@@ -1,5 +1,7 @@
 // client/src/pages/RecruiterDashboard.jsx
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import API from "../api/axios";
@@ -53,36 +55,101 @@ export default function RecruiterDashboard() {
   const [viewingResume, setViewingResume] = useState(null);
   const [fetchingResume, setFetchingResume] = useState(false);
 
-  const handleViewResume = async (resumeId, candidateObj) => {
-    const fallbackText =
-      candidateObj?.rawText || "Resume parsed and vector indexed.";
-    const candidateName =
-      candidateObj?.candidate?.name || candidateObj?.name || "Candidate";
+  // client/src/pages/RecruiterDashboard.jsx
 
-    // If no valid 24-character ObjectId exists, use local modal state
-    if (!resumeId || typeof resumeId !== "string" || resumeId.length !== 24) {
-      setViewingResume({
-        fileName: `${candidateName}_Resume.pdf`,
-        rawText: fallbackText,
-        extractedSkills: candidateObj?.extractedSkills || [],
-      });
-      return;
-    }
+  // client/src/pages/RecruiterDashboard.jsx
+
+  // client/src/pages/RecruiterDashboard.jsx
+
+  const handleViewResume = async (candidate) => {
+    console.log("Selected Candidate Object:", candidate); // Inspect keys in Browser Console (F12)
 
     try {
-      setFetchingResume(true);
-      const { data } = await API.get(`/resumes/${resumeId}`);
-      setViewingResume(data);
-    } catch (err) {
-      console.warn("Serving cached resume snippet:", err.message);
+      // 1. If candidate card already has populated resume object with a valid fileName or filePath
+      if (
+        candidate.resume &&
+        typeof candidate.resume === "object" &&
+        (candidate.resume.fileName || candidate.resume.filePath)
+      ) {
+        setViewingResume({
+          ...candidate.resume,
+          fileName:
+            candidate.resume.fileName ||
+            candidate.resume.filePath?.split(/[/\\]/).pop(),
+        });
+        return;
+      }
+
+      // 2. Target User ID across all potential schema key names
+      const targetUserId =
+        (typeof candidate.user === "object"
+          ? candidate.user?._id
+          : candidate.user) ||
+        (typeof candidate.applicant === "object"
+          ? candidate.applicant?._id
+          : candidate.applicant) ||
+        (typeof candidate.candidate === "object"
+          ? candidate.candidate?._id
+          : candidate.candidate) ||
+        candidate.userId ||
+        candidate._id;
+
+      const resumeId =
+        typeof candidate.resume === "string"
+          ? candidate.resume
+          : candidate.resume?._id;
+
+      let responseData = null;
+
+      // 3. Request resume by Candidate User ID
+      if (targetUserId) {
+        try {
+          const res = await axios.get(
+            `http://localhost:5001/api/resumes/user/${targetUserId}`,
+          );
+          responseData = res.data;
+        } catch (err) {
+          console.warn(
+            "User ID lookup missed, attempting direct Resume ID lookup...",
+          );
+        }
+      }
+
+      // 4. Fallback: Request by direct Resume ID
+      if (!responseData && resumeId) {
+        const res = await axios.get(
+          `http://localhost:5001/api/resumes/${resumeId}`,
+        );
+        responseData = res.data;
+      }
+
+      if (responseData) {
+        const resolvedFileName =
+          responseData.fileName ||
+          (responseData.filePath
+            ? responseData.filePath.split(/[/\\]/).pop()
+            : null);
+
+        setViewingResume({
+          ...responseData,
+          fileName: resolvedFileName,
+        });
+      } else {
+        setViewingResume({
+          fileName: null,
+          rawText: `No resume document found on file for ${
+            candidate.name || candidate.fullName || "this candidate"
+          }.`,
+          extractedSkills: candidate.skills || candidate.extractedSkills || [],
+        });
+      }
+    } catch (error) {
+      console.error("Error retrieving candidate resume:", error);
       setViewingResume({
-        _id: resumeId,
-        fileName: `${candidateName}_Resume.pdf`,
-        rawText: fallbackText,
-        extractedSkills: candidateObj?.extractedSkills || [],
+        fileName: null,
+        rawText: "Unable to retrieve resume file from server.",
+        extractedSkills: candidate.skills || [],
       });
-    } finally {
-      setFetchingResume(false);
     }
   };
 
@@ -835,7 +902,7 @@ export default function RecruiterDashboard() {
 
               <div className="flex items-center space-x-2">
                 {/* OPEN ORIGINAL PDF IN NEW TAB */}
-                {viewingResume?._id && (
+                {viewingResume?.fileName && (
                   <a
                     href={`http://localhost:5001/uploads/${viewingResume.fileName}`}
                     target="_blank"
@@ -878,7 +945,7 @@ export default function RecruiterDashboard() {
 
             {/* Embedded PDF Preview / Raw Text Fallback */}
             <div className="flex-1 overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200/80 font-mono text-xs text-slate-700 leading-relaxed min-h-[250px]">
-              {viewingResume?._id ? (
+              {viewingResume?.fileName ? (
                 <iframe
                   src={`http://localhost:5001/uploads/${viewingResume.fileName}`}
                   title="Candidate Resume PDF"
