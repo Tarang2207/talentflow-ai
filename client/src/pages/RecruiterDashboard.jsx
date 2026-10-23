@@ -57,99 +57,73 @@ export default function RecruiterDashboard() {
 
   // client/src/pages/RecruiterDashboard.jsx
 
-  // client/src/pages/RecruiterDashboard.jsx
-
-  // client/src/pages/RecruiterDashboard.jsx
-
   const handleViewResume = async (candidate) => {
-    console.log("Selected Candidate Object:", candidate); // Inspect keys in Browser Console (F12)
+    console.log("Leaderboard Candidate Item:", candidate);
 
     try {
-      // 1. If candidate card already has populated resume object with a valid fileName or filePath
-      if (
-        candidate.resume &&
-        typeof candidate.resume === "object" &&
-        (candidate.resume.fileName || candidate.resume.filePath)
-      ) {
-        setViewingResume({
-          ...candidate.resume,
-          fileName:
-            candidate.resume.fileName ||
-            candidate.resume.filePath?.split(/[/\\]/).pop(),
-        });
-        return;
-      }
+      const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : {};
 
-      // 2. Target User ID across all potential schema key names
-      const targetUserId =
-        (typeof candidate.user === "object"
-          ? candidate.user?._id
-          : candidate.user) ||
-        (typeof candidate.applicant === "object"
-          ? candidate.applicant?._id
-          : candidate.applicant) ||
-        (typeof candidate.candidate === "object"
-          ? candidate.candidate?._id
-          : candidate.candidate) ||
-        candidate.userId ||
-        candidate._id;
+      let targetId =
+        typeof candidate === "string"
+          ? candidate
+          : candidate?.user_id ||
+            candidate?.candidate_id ||
+            candidate?.userId ||
+            candidate?.applicantId ||
+            (typeof candidate?.user === "object"
+              ? candidate?.user?._id
+              : candidate?.user) ||
+            (typeof candidate?.applicant === "object"
+              ? candidate?.applicant?._id
+              : candidate?.applicant) ||
+            candidate?._id;
 
-      const resumeId =
-        typeof candidate.resume === "string"
-          ? candidate.resume
-          : candidate.resume?._id;
+      if (!targetId) return;
 
       let responseData = null;
 
-      // 3. Request resume by Candidate User ID
-      if (targetUserId) {
+      try {
+        const res = await axios.get(
+          `http://localhost:5001/api/resumes/user/${targetId}`,
+          axiosConfig,
+        );
+        responseData = res.data;
+      } catch (err) {
         try {
           const res = await axios.get(
-            `http://localhost:5001/api/resumes/user/${targetUserId}`,
+            `http://localhost:5001/api/resumes/${targetId}`,
+            axiosConfig,
           );
           responseData = res.data;
-        } catch (err) {
-          console.warn(
-            "User ID lookup missed, attempting direct Resume ID lookup...",
-          );
+        } catch (err2) {
+          console.warn("Resume lookups failed for ID:", targetId);
         }
       }
 
-      // 4. Fallback: Request by direct Resume ID
-      if (!responseData && resumeId) {
-        const res = await axios.get(
-          `http://localhost:5001/api/resumes/${resumeId}`,
-        );
-        responseData = res.data;
-      }
-
       if (responseData) {
-        const resolvedFileName =
-          responseData.fileName ||
-          (responseData.filePath
-            ? responseData.filePath.split(/[/\\]/).pop()
-            : null);
+        console.log("Resume Data received from API:", responseData);
+
+        // Prioritize Multer disk path (filePath) over original fileName
+        const rawPath =
+          responseData.filePath || `uploads/${responseData.fileName}`;
+        const cleanPath = rawPath.replace(/\\/g, "/").replace(/^\/+/, "");
 
         setViewingResume({
           ...responseData,
-          fileName: resolvedFileName,
+          fileUrl: `http://localhost:5001/${cleanPath}`,
         });
       } else {
         setViewingResume({
           fileName: null,
-          rawText: `No resume document found on file for ${
-            candidate.name || candidate.fullName || "this candidate"
-          }.`,
-          extractedSkills: candidate.skills || candidate.extractedSkills || [],
+          rawText: `No resume document on file in database matching ID (${targetId}).`,
+          extractedSkills: candidate?.skills || [],
         });
       }
     } catch (error) {
       console.error("Error retrieving candidate resume:", error);
-      setViewingResume({
-        fileName: null,
-        rawText: "Unable to retrieve resume file from server.",
-        extractedSkills: candidate.skills || [],
-      });
     }
   };
 
@@ -318,6 +292,27 @@ export default function RecruiterDashboard() {
     } finally {
       setPublishing(false);
     }
+  };
+
+  {
+    /* Helper function placed right above return () in RecruiterDashboard.jsx */
+  }
+
+  const getResumeUrl = (resume) => {
+    if (!resume) return "";
+
+    // Prioritize filePath (the actual disk filename saved by Multer) over fileName
+    const targetPath = resume.filePath || `uploads/${resume.fileName}`;
+
+    // Replace Windows backslashes (\) with web slashes (/) and remove leading slashes
+    const cleanPath = targetPath.replace(/\\/g, "/").replace(/^\/+/, "");
+
+    // Ensure the URL ends with .pdf
+    const finalPath = cleanPath.endsWith(".pdf")
+      ? cleanPath
+      : `${cleanPath}.pdf`;
+
+    return `http://localhost:5001/${finalPath}`;
   };
 
   return (
@@ -902,9 +897,9 @@ export default function RecruiterDashboard() {
 
               <div className="flex items-center space-x-2">
                 {/* OPEN ORIGINAL PDF IN NEW TAB */}
-                {viewingResume?.fileName && (
+                {viewingResume?.fileUrl && (
                   <a
-                    href={`http://localhost:5001/uploads/${viewingResume.fileName}`}
+                    href={viewingResume.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3.5 py-2 rounded-xl text-xs transition border border-indigo-200/80 flex items-center space-x-1.5"
@@ -945,9 +940,9 @@ export default function RecruiterDashboard() {
 
             {/* Embedded PDF Preview / Raw Text Fallback */}
             <div className="flex-1 overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200/80 font-mono text-xs text-slate-700 leading-relaxed min-h-[250px]">
-              {viewingResume?.fileName ? (
+              {viewingResume?.fileUrl ? (
                 <iframe
-                  src={`http://localhost:5001/uploads/${viewingResume.fileName}`}
+                  src={viewingResume.fileUrl}
                   title="Candidate Resume PDF"
                   className="w-full h-96 rounded-xl border-none"
                 />

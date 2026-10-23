@@ -87,6 +87,19 @@ export const getJobById = async (req, res) => {
   }
 };
 
+export const getRecruiterApplications = async (req, res) => {
+  try {
+    const applications = await Application.find()
+      .populate("user", "_id name email") // 👈 Populates the candidate User object
+      .populate("applicant", "_id name email") // 👈 If schema uses 'applicant' instead
+      .populate("resume"); // 👈 Populates resume directly if linked
+
+    return res.status(200).json(applications);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Update Job Assessment Questions
 // @route   PUT /api/jobs/:id
 export const updateJobQuestions = async (req, res) => {
