@@ -69,16 +69,19 @@ export default function RecruiterDashboard() {
       let targetId =
         typeof candidate === "string"
           ? candidate
-          : candidate?.user_id ||
-            candidate?.candidate_id ||
-            candidate?.userId ||
-            candidate?.applicantId ||
+          : (typeof candidate?.candidate === "object"
+              ? candidate?.candidate?._id
+              : candidate?.candidate) ||
             (typeof candidate?.user === "object"
               ? candidate?.user?._id
               : candidate?.user) ||
             (typeof candidate?.applicant === "object"
               ? candidate?.applicant?._id
               : candidate?.applicant) ||
+            candidate?.user_id ||
+            candidate?.candidate_id ||
+            candidate?.userId ||
+            candidate?.applicantId ||
             candidate?._id;
 
       if (!targetId) return;
@@ -99,27 +102,34 @@ export default function RecruiterDashboard() {
           );
           responseData = res.data;
         } catch (err2) {
-          console.warn("Resume lookups failed for ID:", targetId);
+          console.warn("No resume document found in DB for ID:", targetId);
         }
       }
 
       if (responseData) {
-        console.log("Resume Data received from API:", responseData);
-
-        // Prioritize Multer disk path (filePath) over original fileName
         const rawPath =
           responseData.filePath || `uploads/${responseData.fileName}`;
-        const cleanPath = rawPath.replace(/\\/g, "/").replace(/^\/+/, "");
+
+        // Normalize backslashes and strip local absolute paths (e.g. D:\...)
+        const normalized = rawPath.replace(/\\/g, "/");
+        const uploadsIndex = normalized.indexOf("uploads/");
+        const cleanPath =
+          uploadsIndex !== -1
+            ? normalized.substring(uploadsIndex)
+            : normalized.replace(/^\/+/, "");
 
         setViewingResume({
           ...responseData,
           fileUrl: `http://localhost:5001/${cleanPath}`,
         });
       } else {
+        // Graceful state when candidate has not uploaded a file yet
         setViewingResume({
-          fileName: null,
-          rawText: `No resume document on file in database matching ID (${targetId}).`,
+          fileName: candidate?.name || candidate?.candidate_name || "Candidate",
+          rawText:
+            "No resume PDF uploaded for this candidate yet. Candidate applied via direct profile.",
           extractedSkills: candidate?.skills || [],
+          fileUrl: null,
         });
       }
     } catch (error) {
@@ -766,14 +776,7 @@ export default function RecruiterDashboard() {
             </div>
 
             <button
-              onClick={() =>
-                handleViewResume(
-                  selectedCandidate.resumeId ||
-                    selectedCandidate.resume?._id ||
-                    selectedCandidate._id,
-                  selectedCandidate,
-                )
-              }
+              onClick={() => handleViewResume(selectedCandidate)}
               disabled={fetchingResume}
               className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center space-x-2 disabled:opacity-50"
             >

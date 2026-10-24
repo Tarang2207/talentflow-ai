@@ -41,76 +41,58 @@ router.get("/my-resume", protect, getMyResume);
 router.get("/file/:id", getResumeFile);
 // server/routes/resumeRoutes.js
 
-// GET resume by Candidate User ID (or Resume ID fallback)
+// GET candidate resume by User ID, Application ID, or Resume ID
 router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(`\n--- [RESUME LOOKUP] Searching for ID: ${userId} ---`);
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      console.log("❌ Invalid ObjectId format received.");
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const objectId = new mongoose.Types.ObjectId(userId);
+    const targetId = new mongoose.Types.ObjectId(userId);
 
-    // 1. Direct match in Resume collection (User ID or Resume ID)
+    // 1. Direct Lookup by user ID or resume _id
     let resume = await Resume.findOne({
-      $or: [{ user: objectId }, { _id: objectId }],
+      $or: [{ user: targetId }, { _id: targetId }],
     });
 
-    if (resume) {
-      console.log("✅ Resume found directly via User ID or Resume ID.");
-      return res.status(200).json(resume);
-    }
-
-    // 2. Check all potential candidate/application collections in MongoDB
-    if (mongoose.connection.db) {
+    // 2. Fallback: Search applications or candidates collections if targetId is an Application/Candidate ID
+    if (!resume && mongoose.connection.db) {
       const db = mongoose.connection.db;
 
       // Check 'applications' collection
-      let matchDoc = await db
+      const appDoc = await db
         .collection("applications")
-        .findOne({ _id: objectId });
+        .findOne({ _id: targetId });
+      let candidateUserId =
+        appDoc?.user || appDoc?.candidate || appDoc?.applicant;
 
-      // Fallback: Check 'candidates' or 'users' collections if ID belongs to candidate profile
-      if (!matchDoc) {
-        matchDoc = await db.collection("candidates").findOne({ _id: objectId });
+      // Check 'candidates' collection
+      if (!candidateUserId) {
+        const candDoc = await db
+          .collection("candidates")
+          .findOne({ _id: targetId });
+        candidateUserId = candDoc?.user || candDoc?.userId;
       }
-      if (!matchDoc) {
-        matchDoc = await db.collection("users").findOne({ _id: objectId });
-      }
 
-      if (matchDoc) {
-        const candidateUserId =
-          matchDoc.user ||
-          matchDoc.applicant ||
-          matchDoc.candidate ||
-          matchDoc._id;
-        console.log(
-          `📌 Document found in DB. Resolved Candidate User ID: ${candidateUserId}`,
-        );
-
+      if (candidateUserId) {
+        const cleanUserId = new mongoose.Types.ObjectId(candidateUserId);
         resume = await Resume.findOne({
-          $or: [
-            { user: new mongoose.Types.ObjectId(candidateUserId) },
-            { _id: new mongoose.Types.ObjectId(candidateUserId) },
-          ],
+          $or: [{ user: cleanUserId }, { _id: cleanUserId }],
         });
       }
     }
 
     if (!resume) {
-      console.log("❌ No matching resume document found in MongoDB.");
       return res
         .status(404)
-        .json({ message: "No resume document found in database." });
+        .json({ message: "No resume found for this candidate ID" });
     }
 
-    console.log("✅ Resume found via reference fallback.");
     return res.status(200).json(resume);
   } catch (error) {
-    console.error("🔥 [RESUME ROUTE ERROR]:", error);
+    console.error("[GET USER RESUME ROUTE ERROR]:", error);
     return res.status(500).json({ message: error.message });
   }
 });

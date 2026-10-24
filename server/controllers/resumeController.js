@@ -16,11 +16,13 @@ export const uploadResume = async (req, res) => {
         .json({ message: "User session expired. Please log in again." });
     }
 
-    // 1. Store the exact Multer disk filename and path
+    // 1. Store the exact Multer disk filename and normalize the path for web access
     const savedFileName = req.file.filename;
     const originalName = req.file.originalname || "Resume.pdf";
     const contentType = req.file.mimetype || "application/pdf";
-    const filePath = req.file.path;
+    
+    // 👈 Normalized backslashes (\) to forward slashes (/) for clean URL serving
+    const filePath = req.file.path.replace(/\\/g, "/");
 
     // 2. Read file safely from disk
     let rawText = "Resume uploaded and vector indexed successfully.";
@@ -51,14 +53,14 @@ export const uploadResume = async (req, res) => {
       new RegExp(`(?:^|\\W)${skill}(?:$|\\W)`, "i").test(rawText),
     );
 
-    // 3. Save disk filename to MongoDB
+    // 3. Save disk filename and normalized web path to MongoDB
     const resume = await Resume.findOneAndUpdate(
       { user: req.user._id },
       {
         user: req.user._id,
-        fileName: savedFileName, // 👈 Saved disk filename (with timestamp)
+        fileName: savedFileName, // Saved disk filename (with timestamp)
         originalName: originalName,
-        filePath: filePath,
+        filePath: filePath, // Clean web-ready path (e.g. uploads/1792...)
         contentType: contentType,
         rawText: rawText.trim() || "Resume document ingested cleanly.",
         extractedSkills:
@@ -102,9 +104,9 @@ export const getMyResume = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
 // @desc    View / Stream actual uploaded resume file
 // @route   GET /api/resumes/file/:id
-// server/controllers/resumeController.js
 export const getResumeFile = async (req, res) => {
   try {
     const { id } = req.params;
