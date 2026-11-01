@@ -1,4 +1,3 @@
-// client/src/pages/RecruiterDashboard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -47,15 +46,15 @@ export default function RecruiterDashboard() {
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
+
   // Question Management State
   const [showQuestionsModal, setShowQuestionsModal] = useState(false);
   const [editedQuestions, setEditedQuestions] = useState([]);
   const [savingQuestions, setSavingQuestions] = useState(false);
+
   // Resume Modal State
   const [viewingResume, setViewingResume] = useState(null);
   const [fetchingResume, setFetchingResume] = useState(false);
-
-  // client/src/pages/RecruiterDashboard.jsx
 
   const handleViewResume = async (candidate) => {
     console.log("Leaderboard Candidate Item:", candidate);
@@ -110,7 +109,6 @@ export default function RecruiterDashboard() {
         const rawPath =
           responseData.filePath || `uploads/${responseData.fileName}`;
 
-        // Normalize backslashes and strip local absolute paths (e.g. D:\...)
         const normalized = rawPath.replace(/\\/g, "/");
         const uploadsIndex = normalized.indexOf("uploads/");
         const cleanPath =
@@ -123,7 +121,6 @@ export default function RecruiterDashboard() {
           fileUrl: `http://localhost:5001/${cleanPath}`,
         });
       } else {
-        // Graceful state when candidate has not uploaded a file yet
         setViewingResume({
           fileName: candidate?.name || candidate?.candidate_name || "Candidate",
           rawText:
@@ -137,7 +134,6 @@ export default function RecruiterDashboard() {
     }
   };
 
-  // Handler Function
   const handleOpenQuestionsModal = () => {
     if (!selectedJob) return;
     const currentQuestions =
@@ -165,7 +161,6 @@ export default function RecruiterDashboard() {
   const handleRemoveQuestion = (index) => {
     setEditedQuestions(editedQuestions.filter((_, i) => i !== index));
   };
-
   const handleSaveQuestions = async () => {
     if (!selectedJob?._id) return;
     try {
@@ -200,7 +195,6 @@ export default function RecruiterDashboard() {
       setSavingQuestions(false);
     }
   };
-  // END OF HANDLER FUNCTION
 
   // 1. Fetch Job Openings
   const fetchJobs = async () => {
@@ -304,25 +298,40 @@ export default function RecruiterDashboard() {
     }
   };
 
-  {
-    /* Helper function placed right above return () in RecruiterDashboard.jsx */
-  }
-
   const getResumeUrl = (resume) => {
     if (!resume) return "";
-
-    // Prioritize filePath (the actual disk filename saved by Multer) over fileName
     const targetPath = resume.filePath || `uploads/${resume.fileName}`;
-
-    // Replace Windows backslashes (\) with web slashes (/) and remove leading slashes
     const cleanPath = targetPath.replace(/\\/g, "/").replace(/^\/+/, "");
-
-    // Ensure the URL ends with .pdf
     const finalPath = cleanPath.endsWith(".pdf")
       ? cleanPath
       : `${cleanPath}.pdf`;
 
     return `http://localhost:5001/${finalPath}`;
+  };
+
+  // Candidate Status Handler (Updates MongoDB & State)
+  const handleStatusChange = async (matchId, newStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : {};
+
+      await axios.patch(
+        `http://localhost:5001/api/match/status/${matchId}`,
+        { recruiterStatus: newStatus },
+        axiosConfig,
+      );
+
+      // Instantly update UI matchResults state
+      setMatchResults((prevMatches) =>
+        prevMatches.map((item) =>
+          item._id === matchId ? { ...item, recruiterStatus: newStatus } : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to update candidate status:", error);
+    }
   };
 
   return (
@@ -356,7 +365,6 @@ export default function RecruiterDashboard() {
               <span>Recruiter Dashboard</span>
             </button>
 
-            {/* LOGICAL RECRUITER PREVIEW BUTTON */}
             <button
               onClick={() =>
                 navigate(
@@ -565,30 +573,31 @@ export default function RecruiterDashboard() {
                   "Looking for a developer with Node.js, Express, React, and MongoDB experience."}
               </p>
 
-              {/* PREVIEW ASSESSMENT BUTTON FOR ACTIVE JOB */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] font-medium text-slate-500">
                   Screening candidate technical competency
                 </span>
-                <button
-                  onClick={() =>
-                    navigate(
-                      `/interview/${selectedJob?._id || "default-job"}/demo-resume`,
-                    )
-                  }
-                  className="bg-indigo-50 hover:bg-indigo-100/80 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-indigo-200/80 transition flex items-center space-x-1.5"
-                >
-                  <Bot className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>Preview Role Test</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/interview/${selectedJob?._id || "default-job"}/demo-resume`,
+                      )
+                    }
+                    className="bg-indigo-50 hover:bg-indigo-100/80 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-indigo-200/80 transition flex items-center space-x-1.5"
+                  >
+                    <Bot className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Preview Role Test</span>
+                  </button>
 
-                <button
-                  onClick={handleOpenQuestionsModal}
-                  className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 transition shadow-sm flex items-center space-x-1.5"
-                >
-                  <Edit3 className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>Edit Questions</span>
-                </button>
+                  <button
+                    onClick={handleOpenQuestionsModal}
+                    className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 transition shadow-sm flex items-center space-x-1.5"
+                  >
+                    <Edit3 className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Edit Questions</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -651,6 +660,20 @@ export default function RecruiterDashboard() {
                         </div>
 
                         <div className="flex items-center space-x-2 shrink-0 ml-4">
+                          {/* Interactive Candidate Status Select */}
+                          <select
+                            value={match.recruiterStatus || "Pending"}
+                            onChange={(e) =>
+                              handleStatusChange(match._id, e.target.value)
+                            }
+                            className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Shortlisted">Shortlisted</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Hired">Hired</option>
+                          </select>
+
                           <span className="text-xs font-bold bg-[#ECFDF5] text-[#059669] px-3 py-1 rounded-full border border-emerald-100">
                             {score}% Match
                           </span>
@@ -710,8 +733,7 @@ export default function RecruiterDashboard() {
                 </p>
               </div>
 
-              {/* --- PASTE THIS CODE BELOW CANDIDATE INFO DIV --- */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 ml-auto">
                 <div className="bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl text-center">
                   <span className="text-[9px] font-bold text-indigo-500 uppercase block tracking-wider">
                     AI Score
@@ -740,7 +762,6 @@ export default function RecruiterDashboard() {
                     : "Reviewed"}
                 </span>
               </div>
-              {/* --- END OF NEW CODE --- */}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -879,7 +900,6 @@ export default function RecruiterDashboard() {
       )}
 
       {/* FULL RESUME VIEWER MODAL */}
-      {/* FULL RESUME VIEWER MODAL */}
       {viewingResume && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white max-w-3xl w-full rounded-3xl p-6 lg:p-8 shadow-xl border border-slate-100 relative space-y-5 max-h-[85vh] flex flex-col">
@@ -899,7 +919,6 @@ export default function RecruiterDashboard() {
               </div>
 
               <div className="flex items-center space-x-2">
-                {/* OPEN ORIGINAL PDF IN NEW TAB */}
                 {viewingResume?.fileUrl && (
                   <a
                     href={viewingResume.fileUrl}
