@@ -55,6 +55,7 @@ export default function RecruiterDashboard() {
   // Resume Modal State
   const [viewingResume, setViewingResume] = useState(null);
   const [fetchingResume, setFetchingResume] = useState(false);
+  const [activeResumeTab, setActiveResumeTab] = useState("pdf"); // 'pdf' | 'text'
 
   const handleViewResume = async (candidate) => {
     console.log("Leaderboard Candidate Item:", candidate);
@@ -899,40 +900,64 @@ export default function RecruiterDashboard() {
         </div>
       )}
 
-      {/* FULL RESUME VIEWER MODAL */}
+      {/* ENHANCED FULL RESUME VIEWER MODAL */}
       {viewingResume && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-3xl w-full rounded-3xl p-6 lg:p-8 shadow-xl border border-slate-100 relative space-y-5 max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 animate-fadeIn">
+          <div className="bg-white max-w-4xl w-full rounded-3xl p-6 lg:p-8 shadow-2xl border border-slate-100 relative space-y-5 max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                  <FileText className="h-5 w-5" />
+                <div className="h-11 w-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                  <FileText className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">
-                    {viewingResume?.fileName || "Candidate Resume"}
+                  <h3 className="text-base font-bold text-[#0F172A] truncate max-w-md">
+                    {viewingResume?.fileName ||
+                      viewingResume?.fileName ||
+                      "Candidate Resume"}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Parsed Document & Vector Index
+                    Vector Index ID:{" "}
+                    <span className="font-mono text-slate-600">
+                      {viewingResume?._id || "N/A"}
+                    </span>
                   </p>
                 </div>
               </div>
 
+              {/* Header Actions */}
               <div className="flex items-center space-x-2">
                 {viewingResume?.fileUrl && (
-                  <a
-                    href={viewingResume.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3.5 py-2 rounded-xl text-xs transition border border-indigo-200/80 flex items-center space-x-1.5"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    <span>Open Original PDF</span>
-                  </a>
+                  <>
+                    {/* Direct File Download */}
+                    <a
+                      href={viewingResume.fileUrl}
+                      download
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition flex items-center space-x-1.5"
+                      title="Download PDF Document"
+                    >
+                      <Download className="h-3.5 w-3.5 text-slate-600" />
+                      <span className="hidden sm:inline">Download</span>
+                    </a>
+
+                    {/* Open in New Browser Tab */}
+                    <a
+                      href={viewingResume.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3.5 py-2 rounded-xl text-xs transition border border-indigo-200/80 flex items-center space-x-1.5"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Full Window</span>
+                    </a>
+                  </>
                 )}
 
                 <button
-                  onClick={() => setViewingResume(null)}
+                  onClick={() => {
+                    setViewingResume(null);
+                    setActiveResumeTab("pdf");
+                  }}
                   className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition"
                 >
                   <X className="h-5 w-5" />
@@ -940,18 +965,18 @@ export default function RecruiterDashboard() {
               </div>
             </div>
 
-            {/* Extracted Key Skills */}
+            {/* Extracted Skill Chips Bar */}
             {viewingResume?.extractedSkills &&
               viewingResume.extractedSkills.length > 0 && (
-                <div className="shrink-0">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                    Parsed Key Skills
+                <div className="shrink-0 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/60">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    AI-Extracted Technical Stack
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {viewingResume.extractedSkills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-indigo-100"
+                        className="bg-white text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-100 shadow-2xs"
                       >
                         {skill}
                       </span>
@@ -960,28 +985,83 @@ export default function RecruiterDashboard() {
                 </div>
               )}
 
-            {/* Embedded PDF Preview / Raw Text Fallback */}
-            <div className="flex-1 overflow-y-auto bg-slate-50 p-4 rounded-2xl border border-slate-200/80 font-mono text-xs text-slate-700 leading-relaxed min-h-[250px]">
-              {viewingResume?.fileUrl ? (
-                <iframe
-                  src={viewingResume.fileUrl}
-                  title="Candidate Resume PDF"
-                  className="w-full h-96 rounded-xl border-none"
-                />
+            {/* View Switcher Tabs (PDF vs Raw Text) */}
+            <div className="flex items-center justify-between shrink-0 pt-1">
+              <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setActiveResumeTab("pdf")}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                    activeResumeTab === "pdf"
+                      ? "bg-white text-indigo-600 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  📄 PDF Preview
+                </button>
+                <button
+                  onClick={() => setActiveResumeTab("text")}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${
+                    activeResumeTab === "text"
+                      ? "bg-white text-indigo-600 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  🔍 Parsed Raw Text (
+                  {viewingResume?.rawText ? viewingResume.rawText.length : 0}{" "}
+                  chars)
+                </button>
+              </div>
+            </div>
+
+            {/* Viewer Container */}
+            <div className="flex-1 overflow-hidden bg-slate-900 rounded-2xl border border-slate-800 relative min-h-[420px]">
+              {activeResumeTab === "pdf" ? (
+                viewingResume?.fileUrl ? (
+                  <iframe
+                    src={`${viewingResume.fileUrl}#toolbar=1&navpanes=0`}
+                    title="Candidate Resume PDF"
+                    className="w-full h-full min-h-[440px] rounded-2xl border-none bg-slate-800"
+                  />
+                ) : (
+                  <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 text-center bg-slate-50 text-slate-500 space-y-3">
+                    <FileText className="h-12 w-12 text-slate-300" />
+                    <p className="text-sm font-semibold text-slate-700">
+                      No Original PDF File Available
+                    </p>
+                    <p className="text-xs text-slate-400 max-w-sm">
+                      This candidate applied using a direct profile form or the
+                      PDF upload is stored as text.
+                    </p>
+                    <button
+                      onClick={() => setActiveResumeTab("text")}
+                      className="mt-2 px-4 py-2 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-xl border border-indigo-200"
+                    >
+                      Switch to Parsed Raw Text
+                    </button>
+                  </div>
+                )
               ) : (
-                <div className="whitespace-pre-wrap">
+                /* Raw Parsed Text Container */
+                <div className="h-full min-h-[440px] overflow-y-auto p-5 bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap selection:bg-indigo-500 selection:text-white">
                   {viewingResume?.rawText ||
-                    "No raw text available for this document."}
+                    "No raw text content available for this resume record."}
                 </div>
               )}
             </div>
 
-            <div className="pt-2 flex justify-end space-x-3 shrink-0">
+            {/* Footer Controls */}
+            <div className="pt-2 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-slate-400">
+                Showing response for {selectedJob?.title || "Active Opening"}
+              </span>
               <button
-                onClick={() => setViewingResume(null)}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition"
+                onClick={() => {
+                  setViewingResume(null);
+                  setActiveResumeTab("pdf");
+                }}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-6 py-2.5 rounded-xl text-xs transition"
               >
-                Close Document
+                Close Viewer
               </button>
             </div>
           </div>
