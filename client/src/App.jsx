@@ -22,6 +22,7 @@ import CandidatePortal from "./pages/CandidatePortal";
 import AuthPage from "./pages/AuthPage";
 import InterviewPage from "./pages/InterviewPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CandidateAssessment from "./pages/CandidateAssessment";
 
 function Home() {
   const navigate = useNavigate();
@@ -238,7 +239,7 @@ function MainLayout() {
               </ProtectedRoute>
             }
           />
-          
+
           {/* Inside <Routes> */}
           <Route
             path="/interview/:jobId/:resumeId"
@@ -254,6 +255,10 @@ function MainLayout() {
                 <InterviewPage />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/interview/:jobId/:candidateId"
+            element={<CandidateAssessment />}
           />
         </Routes>
       </main>
