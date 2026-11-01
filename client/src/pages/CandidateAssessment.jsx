@@ -54,16 +54,18 @@ export default function CandidateAssessment() {
     e.preventDefault();
     setSubmitting(true);
 
+    // Extract the actual logged-in user's MongoDB _id
+    const candidateId = user?._id || user?.id;
+
     const QnA = jobInfo.questions.map((question, idx) => ({
       question,
       answer: answers[idx] || "",
     }));
 
     try {
-      const candidateId = user?._id || user?.id || "demo-candidate";
       const { data } = await API.post("/assessment/submit", {
         jobId: jobId || "default-job",
-        candidateId,
+        candidateId, // Real 24-hex MongoDB ObjectId string
         QnA,
       });
 

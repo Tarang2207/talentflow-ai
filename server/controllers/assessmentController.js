@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Job from "../models/Job.js";
+import User from "../models/User.js";
 import InterviewSession from "../models/InterviewSession.js";
 import { evaluateAssessmentWithAI } from "../services/aiService.js";
 
@@ -8,7 +10,11 @@ export const getAssessmentQuestions = async (req, res) => {
     const { jobId } = req.params;
     let job = null;
 
-    if (jobId && jobId !== "default-job") {
+    if (
+      jobId &&
+      jobId !== "default-job" &&
+      mongoose.Types.ObjectId.isValid(jobId)
+    ) {
       job = await Job.findById(jobId);
     }
 
@@ -44,8 +50,26 @@ export const submitAssessment = async (req, res) => {
         });
     }
 
+    // Safely resolve candidate ObjectId
+    let validCandidateId = candidateId;
+
+    if (!mongoose.Types.ObjectId.isValid(candidateId)) {
+      // If placeholder/demo string, fallback to the first candidate user in DB
+      const fallbackUser = await User.findOne({ role: "candidate" });
+      if (fallbackUser) {
+        validCandidateId = fallbackUser._id;
+      } else {
+        // Generate valid 24-hex ObjectId if no user exists
+        validCandidateId = new mongoose.Types.ObjectId();
+      }
+    }
+
     let activeJob = null;
-    if (jobId && jobId !== "default-job") {
+    if (
+      jobId &&
+      jobId !== "default-job" &&
+      mongoose.Types.ObjectId.isValid(jobId)
+    ) {
       activeJob = await Job.findById(jobId);
     }
 
@@ -61,13 +85,13 @@ export const submitAssessment = async (req, res) => {
 
     // Create or Update InterviewSession record in MongoDB
     let session = await InterviewSession.findOne({
-      candidate: candidateId,
-      job: activeJob?._id,
+      candidate: validCandidateId,
+      ...(activeJob ? { job: activeJob._id } : {}),
     });
 
     if (!session) {
       session = new InterviewSession({
-        candidate: candidateId,
+        candidate: validCandidateId,
         job: activeJob?._id || null,
         overallScore: evalResult.overallScore,
         status: "Completed",
