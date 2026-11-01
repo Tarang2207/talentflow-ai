@@ -15,6 +15,7 @@ import resumeRoutes from "./routes/resumeRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
+import assessmentRoutes from "./routes/assessmentRoutes.js";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "success", message: "Backend is running!" });
 });
+app.use("/api/assessment", assessmentRoutes);
 
 const PORT = process.env.PORT || 5001;
 
