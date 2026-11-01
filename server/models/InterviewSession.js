@@ -19,22 +19,20 @@ const interviewSessionSchema = new mongoose.Schema(
     job: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
-      required: false, // Allows demo/test sessions without throwing validation errors
     },
-    resume: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Resume",
-      required: false, // Allows demo/test sessions without throwing validation errors
-    },
-    questions: [questionSchema],
     overallScore: {
       type: Number,
       default: 0,
     },
     status: {
       type: String,
-      enum: ["In-Progress", "Completed"],
-      default: "In-Progress",
+      enum: ["Not Started", "In Progress", "Completed"],
+      default: "Completed",
+    },
+    recruiterStatus: {
+      type: String,
+      enum: ["Pending", "Shortlisted", "Rejected", "Hired"],
+      default: "Pending",
     },
   },
   { timestamps: true },

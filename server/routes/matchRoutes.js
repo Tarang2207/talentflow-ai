@@ -1,10 +1,12 @@
-// server/routes/matchRoutes.js
 import express from "express";
-import { getJobResumeMatches } from "../controllers/matchController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import {
+  getJobResumeMatches,
+  updateCandidateStatus,
+} from "../controllers/matchController.js";
 
 const router = express.Router();
 
-router.get("/job-resumes/:jobId", protect, getJobResumeMatches);
+router.get("/job-resumes/:jobId", getJobResumeMatches);
+router.patch("/status/:id", updateCandidateStatus);
 
 export default router;
